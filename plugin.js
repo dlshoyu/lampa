@@ -14,7 +14,7 @@
     '.lmp-inner{position:relative;z-index:1}',
     // NAV
     '.lmp-nav{display:flex;align-items:center;gap:2px;padding:8px 20px;position:sticky;top:0;z-index:50;background:rgba(10,10,20,.9);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.05)}',
-    '.lmp-nav__btn{background:none;border:none;color:#aaa;font-family:inherit;font-size:12px;font-weight:500;padding:5px 10px;border-radius:6px;cursor:pointer;transition:color .2s,background .2s;position:relative;white-space:nowrap}',
+    '.lmp-nav__btn{background:none;border:none;color:#bbb;font-family:inherit;font-size:15px;font-weight:500;padding:0 16px;height:100%;border-radius:6px;cursor:pointer;transition:color .2s,background .2s;position:relative;white-space:nowrap}',
     '.lmp-nav__btn:hover{color:#fff;background:rgba(255,255,255,.07)}',
     '.lmp-nav__btn.active{color:#fff}',
     '#lmp-nav-pill{position:absolute;bottom:0;height:2px;background:linear-gradient(90deg,#e94560,#ff8a80);border-radius:2px;transition:left .3s cubic-bezier(.4,0,.2,1),width .3s;pointer-events:none}',
@@ -434,62 +434,42 @@
         });
       });
 
-      // Inject our nav buttons into Lampa's .head between left and right icons
       var headEl = document.querySelector('.head');
       var navEl  = html && html.querySelector('.lmp-nav');
       if (headEl && navEl && !_injectedNav) {
         var headH = headEl.offsetHeight || 52;
-        headEl.style.position = 'relative';
-        // Safe defaults so buttons are always visible
+        // Apply nav styles: position fixed, safe defaults
         navEl.style.cssText = [
-          'position:absolute',
+          'position:fixed',
           'top:0',
-          'left:100px',
-          'right:360px',
+          'left:150px',
+          'right:420px',
           'height:' + headH + 'px',
           'padding:0 4px',
           'background:transparent',
           'backdrop-filter:none',
           'border-bottom:none',
-          'z-index:10000',
-          'pointer-events:auto'
+          'z-index:10001',
+          'pointer-events:auto',
+          'display:flex',
+          'align-items:center'
         ].join(';');
-        headEl.appendChild(navEl);
+        // Move to body so fixed positioning works independently
+        document.body.appendChild(navEl);
         _injectedNav = navEl;
-        // Refine position after layout settles
+        // After layout, refine using actual Lampa element boundaries
         setTimeout(function() {
           if (!_injectedNav) return;
           var headRect = headEl.getBoundingClientRect();
-          var leftW = 0, rightW = 0;
-          // Try Lampa's named selectors first
-          var leftEl  = headEl.querySelector('.head__left, .head__back');
-          var rightEl = headEl.querySelector('.head__right, .head__actions');
-          if (leftEl) {
-            leftW = Math.round(leftEl.getBoundingClientRect().right - headRect.left + 8);
+          var leftEl   = headEl.querySelector('.head__left');
+          var rightEl  = headEl.querySelector('.head__right');
+          if (leftEl && rightEl) {
+            var leftPx  = Math.round(leftEl.getBoundingClientRect().right + 8);
+            var rightPx = Math.round(window.innerWidth - rightEl.getBoundingClientRect().left + 8);
+            navEl.style.left  = leftPx  + 'px';
+            navEl.style.right = rightPx + 'px';
           }
-          if (rightEl) {
-            rightW = Math.round(headRect.right - rightEl.getBoundingClientRect().left + 8);
-          }
-          // Fallback: scan direct children
-          if (!leftW || !rightW) {
-            Array.from(headEl.children).forEach(function(child) {
-              if (child === navEl) return;
-              var r = child.getBoundingClientRect();
-              if (!r.width) return;
-              var midX = r.left + r.width / 2 - headRect.left;
-              if (midX < headRect.width / 2) {
-                leftW = Math.max(leftW, Math.round(r.right - headRect.left + 8));
-              } else {
-                rightW = Math.max(rightW, Math.round(headRect.right - r.left + 8));
-              }
-            });
-          }
-          // Apply only if there is enough room
-          if (leftW > 0 && rightW > 0 && leftW + rightW < headRect.width - 80) {
-            navEl.style.left  = leftW  + 'px';
-            navEl.style.right = rightW + 'px';
-          }
-        }, 200);
+        }, 300);
       }
     }
     function showHeader() {
@@ -498,16 +478,11 @@
         el.removeAttribute('data-lmp-hidden');
       });
       _hiddenEls = [];
-      // Move nav back into our plugin container
       if (_injectedNav) {
+        // Move nav back into plugin container
         var inner = html && html.querySelector('.lmp-inner');
-        if (inner && _injectedNav.parentNode !== inner) {
-          inner.insertBefore(_injectedNav, inner.firstChild);
-        }
+        if (inner) inner.insertBefore(_injectedNav, inner.firstChild);
         _injectedNav.style.cssText = '';
-        // Restore head position
-        var headEl = document.querySelector('.head');
-        if (headEl) headEl.style.position = '';
         _injectedNav = null;
       }
     }
