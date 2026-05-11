@@ -338,6 +338,7 @@
       Lampa.Controller.add('content', {
         toggle: function() {
           if (mode === 'hero') {
+            if (!hero) return;
             var hcards = html.querySelectorAll('.lmp-hcard');
             hcards.forEach(function(c){ c.classList.remove('focused'); });
             if(hcards[hero.getCur()]) hcards[hero.getCur()].classList.add('focused');
@@ -347,6 +348,7 @@
         },
         right: function() {
           if (mode === 'hero') {
+            if (!hero) return;
             var next = hero.getCur() + 1;
             if (next < hero.getLen()) hero.goTo(next);
           } else {
@@ -355,6 +357,7 @@
         },
         left: function() {
           if (mode === 'hero') {
+            if (!hero) return;
             var prev = hero.getCur() - 1;
             if (prev >= 0) hero.goTo(prev);
           } else {
@@ -369,13 +372,14 @@
         },
         down: function() {
           if (mode === 'hero') {
-            setMode('cards');
+            if (rows.length) setMode('cards');
           } else {
             if (rowIdx < rows.length-1) focusCard(rowIdx+1, Math.min(colIdx, rows[rowIdx+1].cards.length-1));
           }
         },
         enter: function() {
           if (mode === 'hero') {
+            if (!hero) return;
             var m = hero.getItem(hero.getCur());
             if (m && m.id) openMovie(m);
           } else {
