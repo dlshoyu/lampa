@@ -52,14 +52,14 @@
     '.lmp-card{flex-shrink:0;width:140px;cursor:pointer;position:relative}',
     '.lmp-card__poster{position:relative;width:140px;height:204px;border-radius:8px;overflow:hidden;background:#1e1e2e;transition:transform .3s,box-shadow .3s}',
     '.lmp-card.focused .lmp-card__poster{transform:scale(1.06) translateY(-4px);box-shadow:0 14px 36px rgba(0,0,0,.8);outline:2px solid rgba(255,255,255,.5)}',
-    '.lmp-card__poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s}',
+    '.lmp-card__poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;pointer-events:none}',
     '.lmp-card.focused .lmp-card__poster img{transform:scale(1.08)}',
-    '.lmp-card__ratings{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 3px 4px;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent)}',
+    '.lmp-card__ratings{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 3px 4px;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent);pointer-events:none}',
     '.lmp-crb{display:inline-flex;align-items:center;gap:2px;font-size:8.5px;font-weight:700;line-height:1;white-space:nowrap}',
     '.lmp-crb--imdb{color:#f5c518}.lmp-crb--kp{color:#ff6600}.lmp-crb--user{color:#63ca82}',
     '.lmp-crb--qual{color:#bbb;font-weight:800;letter-spacing:.5px}',
-    '.lmp-card__title{margin-top:6px;font-size:12px;font-weight:500;color:#bbb;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}',
-    '.lmp-card__year{font-size:10px;color:#555;margin-top:2px}',
+    '.lmp-card__title{margin-top:6px;font-size:12px;font-weight:500;color:#bbb;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;pointer-events:none}',
+    '.lmp-card__year{font-size:10px;color:#555;margin-top:2px;pointer-events:none}',
     '.lmp-empty{text-align:center;padding:60px 20px;color:#444;font-size:14px}'
   ].join('');
 
@@ -202,6 +202,22 @@
         el.style.opacity = '';
         el.style.animation = 'springUp .6s cubic-bezier(.4,0,.2,1) ' + (i*80) + 'ms both';
       }, 30);
+    });
+
+    // Click handlers on hero cards
+    wrap.querySelectorAll('.lmp-hcard').forEach(function(el, i) {
+      el.addEventListener('click', function() {
+        if (cur === i) {
+          if (items[i] && items[i].id) openMovie(items[i]);
+        } else {
+          goTo(i);
+        }
+      });
+    });
+
+    // Click on dots
+    wrap.querySelectorAll('.lmp-hdot').forEach(function(d, i) {
+      d.addEventListener('click', function(e) { e.stopPropagation(); goTo(i); });
     });
 
     goTo(0);
@@ -402,27 +418,66 @@
       hideHeader();
     };
 
-    // Find and hide Lampa's header (tries multiple selectors)
+    // Find and hide Lampa's header title, inject our nav into header bar
     var _hiddenEls = [];
+    var _injectedNav = null;
     function hideHeader() {
-      // Hide only the title/left side of Lampa's header, keep right-side action buttons
-      var selectors = ['.head__title', '.head__logo', '.head__back', '.head__left'];
+      // Hide the title/logo elements in Lampa's header
+      var selectors = ['.head__title', '.head__logo', '.head__logo-text'];
       selectors.forEach(function(sel) {
         document.querySelectorAll(sel).forEach(function(el) {
           if (el.getAttribute('data-lmp-hidden') === null) {
-            el.setAttribute('data-lmp-hidden', el.style.display || '');
-            el.style.display = 'none';
+            el.setAttribute('data-lmp-hidden', el.style.visibility || '');
+            el.style.visibility = 'hidden';
             _hiddenEls.push(el);
           }
         });
       });
+
+      // Inject our nav buttons into Lampa's .head on the LEFT side
+      var headEl = document.querySelector('.head');
+      var navEl  = html && html.querySelector('.lmp-nav');
+      if (headEl && navEl && !_injectedNav) {
+        var headH = headEl.offsetHeight || 52;
+        // Find leftmost right-side icon to know where to stop
+        var rightIcons = headEl.querySelector('.head__right, .head__actions, .head__menu');
+        // Move our nav into head DOM so it sits left, before right icons
+        navEl.style.cssText = [
+          'position:absolute',
+          'top:0',
+          'left:0',
+          'height:' + headH + 'px',
+          'padding:0 8px',
+          'background:transparent',
+          'backdrop-filter:none',
+          'border-bottom:none',
+          'z-index:10000',
+          'pointer-events:auto'
+        ].join(';');
+        // Prepend into headEl so it flows left
+        headEl.style.position = 'relative';
+        headEl.insertBefore(navEl, headEl.firstChild);
+        _injectedNav = navEl;
+      }
     }
     function showHeader() {
       _hiddenEls.forEach(function(el) {
-        el.style.display = el.getAttribute('data-lmp-hidden') || '';
+        el.style.visibility = el.getAttribute('data-lmp-hidden') || '';
         el.removeAttribute('data-lmp-hidden');
       });
       _hiddenEls = [];
+      // Move nav back into our plugin container
+      if (_injectedNav) {
+        var inner = html && html.querySelector('.lmp-inner');
+        if (inner && _injectedNav.parentNode !== inner) {
+          inner.insertBefore(_injectedNav, inner.firstChild);
+        }
+        _injectedNav.style.cssText = '';
+        // Restore head position
+        var headEl = document.querySelector('.head');
+        if (headEl) headEl.style.position = '';
+        _injectedNav = null;
+      }
     }
 
     this.pause  = function() { showHeader(); };
@@ -527,6 +582,13 @@
           setTimeout(function(){ c.style.opacity=''; c.style.animation='springUp .5s cubic-bezier(.4,0,.2,1) '+(j*28)+'ms both'; },50);
         });
         newRows.push({cards:Array.from(cards), items:items, head:head});
+        // Add click handlers
+        cards.forEach(function(c, j) {
+          c.addEventListener('click', function() {
+            var item = items[j];
+            if (item && item.id) openMovie(item);
+          });
+        });
       });
       if (setRows) setRows(newRows);
     }
