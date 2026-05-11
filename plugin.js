@@ -9,9 +9,9 @@
   var CSS = [
     '@keyframes springUp{0%{opacity:0;transform:translateY(22px) scale(.95)}55%{opacity:1;transform:translateY(-5px) scale(1.02)}75%{transform:translateY(2px)}100%{transform:translateY(0) scale(1)}}',
     '@keyframes kenBurns{0%{transform:scale(1)}50%{transform:scale(1.06) translate(-1%,.5%)}100%{transform:scale(1.04) translate(.8%,-.6%)}}',
-    '.lmp-wrap{position:relative;width:100%;min-height:100vh;background:#111119;font-family:Inter,sans-serif;overflow-x:hidden}',
+    '.lmp-wrap{position:relative;width:100%;min-height:100vh;max-height:100vh;background:#111119;font-family:Inter,sans-serif;overflow-x:hidden;overflow-y:auto}',
     '#lmp-bg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55}',
-    '.lmp-inner{position:relative;z-index:1}',
+    '.lmp-inner{position:relative;z-index:1;display:flex;flex-direction:column}',
     // HERO
     '.lmp-hero{position:relative;height:54vh;min-height:320px;overflow:hidden}',
     '.lmp-hero__track{display:flex;height:100%;transition:transform .6s cubic-bezier(.4,0,.2,1)}',
@@ -58,11 +58,11 @@
     '.lmp-card.entering{animation:springUp .5s cubic-bezier(.4,0,.2,1) both}'
   ].join('');
 
-  // ─── Icons ────────────────────────────────────────────────
+  // ─── Icons (CSS badges, no SVG text) ─────────────────────
   var ICO = {
-    imdb: '<svg viewBox="0 0 24 24" fill="#f5c518"><rect width="24" height="24" rx="4"/><text x="2" y="17" font-size="10" font-weight="900" fill="#000">IMDb</text></svg>',
-    kp:   '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#ff6600"/><text x="5" y="16" font-size="10" font-weight="900" fill="#fff">КП</text></svg>',
-    user: '<svg viewBox="0 0 24 24" fill="#63ca82"><path d="M12 2l2.6 7.9H23l-6.8 5 2.6 7.9L12 18l-6.8 4.8 2.6-7.9L1 9.9h8.4z"/></svg>'
+    imdb: '<b style="background:#f5c518;color:#000;font-size:7.5px;padding:1px 4px;border-radius:2px;font-weight:900;line-height:1.4;font-style:normal">IMDb</b>',
+    kp:   '<b style="background:#ff6600;color:#fff;font-size:7.5px;padding:1px 4px;border-radius:2px;font-weight:900;line-height:1.4;font-style:normal">КП</b>',
+    user: '<span style="font-size:9px;line-height:1">★</span>'
   };
 
   var QLABEL = {'4K':'4K','2K':'2K','1080p':'FHD','720p':'HD','480p':'SD','TS':'TS'};
@@ -409,15 +409,17 @@
   function tmdbGet(url, cb) {
     try {
       var src = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb;
+      if (!src) src = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources[Object.keys(Lampa.Api.sources||{})[0]];
       if (src && typeof src.get === 'function') {
         src.get({
           url: url,
           onComplite: function(d){ cb((d && d.results || []).map(fromCard)); },
-          onError:    function()  { cb(null); }
+          onComplete:  function(d){ cb((d && d.results || []).map(fromCard)); },
+          onError:     function(){ cb(null); }
         });
         return;
       }
-    } catch(e) { console.log('[LMP] tmdbGet error:', e); }
+    } catch(e) { console.log('[LMP] tmdbGet error', url, e); }
     cb(null);
   }
 
