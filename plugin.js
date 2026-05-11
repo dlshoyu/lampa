@@ -406,6 +406,29 @@
   }
 
   // ─── Init ─────────────────────────────────────────────────
+  var menuAdded = false;
+
+  function addMenu() {
+    if (menuAdded) return;
+    if (!Lampa || !Lampa.Menu || !Lampa.Menu.add) return;
+    menuAdded = true;
+
+    var ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z" opacity=".3"/><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/><path d="M5 7h14v2H5zm0 4h8v2H5z"/></svg>';
+
+    Lampa.Menu.add({
+      title:    'Новый UI',
+      subtitle: 'Кастомный интерфейс',
+      icon:     ICON,
+      action: function() {
+        Lampa.Activity.push({
+          url:       '',
+          title:     'Главная',
+          component: 'lampa_custom_home'
+        });
+      }
+    });
+  }
+
   function init() {
     var style = document.createElement('style');
     style.textContent = CSS;
@@ -413,20 +436,16 @@
 
     Lampa.Component.add('lampa_custom_home', CustomHome);
 
-    Lampa.Listener.follow('app:start', function() {
-      Lampa.Menu.add({
-        title:    'Новый UI',
-        subtitle: 'Кастомный интерфейс',
-        icon:     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z" opacity=".3"/><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/><path d="M5 7h14v2H5zm0 4h8v2H5z"/></svg>',
-        action: function() {
-          Lampa.Activity.push({
-            url:       '',
-            title:     'Главная',
-            component: 'lampa_custom_home'
-          });
-        }
-      });
-    });
+    // Попытка немедленно (если app уже запущен)
+    addMenu();
+
+    // Подписка на события (если app ещё не запущен)
+    Lampa.Listener.follow('app:start', addMenu);
+    Lampa.Listener.follow('app:ready', addMenu);
+
+    // Fallback через таймер
+    setTimeout(addMenu, 500);
+    setTimeout(addMenu, 2000);
   }
 
   if (window.Lampa) init();
