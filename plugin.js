@@ -285,7 +285,7 @@
         rows.push({cards: Array.from(cards), items: s.items, head: head});
       });
 
-      // Hero carousel
+      // Hero carousel (mock first, real data will replace)
       hero = buildHero(getHeroItems(), heroEl, bg);
 
       // BG animation loop
@@ -293,6 +293,9 @@
         bg.draw();
         requestAnimationFrame(loop);
       })();
+
+      // Load real data from Lampa/TMDB
+      loadRealData(content, heroEl, bg);
 
       return html;
     };
@@ -380,10 +383,47 @@
     });
   }
 
-  // ─── Data: try Lampa API, fallback to mock ────────────────
+  // ─── Data: Lampa TMDB API + mock fallback ────────────────
+  var IMG = 'https://image.tmdb.org/t/p/';
+
+  function fromCard(item) {
+    var score = item.vote_average ? (+item.vote_average).toFixed(1) : '—';
+    var year  = (item.release_date || item.first_air_date || '').slice(0,4);
+    return {
+      id:     item.id,
+      title:  item.title || item.name || '',
+      year:   year,
+      imdb:   score,
+      kp:     score,
+      user:   score,
+      quality: '',
+      desc:   item.overview || '',
+      img:    item.poster_path   ? IMG+'w342'+item.poster_path   : 'https://picsum.photos/seed/p'+item.id+'/300/450',
+      imgH:   item.backdrop_path ? IMG+'w1280'+item.backdrop_path : 'https://picsum.photos/seed/h'+item.id+'/900/520',
+      colors: ['#1a1a3e','#2d0a3e','#0a1a2e'],
+      method: item.media_type === 'tv' ? 'tv' : 'movie',
+      card:   item
+    };
+  }
+
+  function tmdbGet(url, cb) {
+    try {
+      var src = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb;
+      if (src && typeof src.get === 'function') {
+        src.get({
+          url: url,
+          onComplite: function(d){ cb((d && d.results || []).map(fromCard)); },
+          onError:    function()  { cb(null); }
+        });
+        return;
+      }
+    } catch(e) { console.log('[LMP] tmdbGet error:', e); }
+    cb(null);
+  }
+
+  // Mock fallbacks
   function P(s,w,h){ w=w||300;h=h||450; return 'https://picsum.photos/seed/'+s+'/'+w+'/'+h; }
   function H(s){ return P(s,900,520); }
-
   var MOCK_HERO = [
     {title:'Дюна: Часть третья',year:2026,quality:'4K',imdb:8.5,kp:8.7,user:9.0,colors:['#e65100','#bf360c','#4e342e'],desc:'Пол Атрейдес ведёт фременов в последний бой.',img:H('dune3ba')},
     {title:'Последние из нас 3',year:2026,quality:'4K',imdb:9.0,kp:9.3,user:9.5,colors:['#1b5e20','#4e342e','#212121'],desc:'Джоэл и Элли снова в пути.',img:H('tlou3ba')},
@@ -392,22 +432,58 @@
   var MOCK_CARDS = [
     {title:'Мортал Комбат 2',year:2026,quality:'4K',imdb:7.2,kp:7.8,user:8.5,colors:['#b71c1c','#1a0a00'],img:P('mk2axa')},
     {title:'Оппенгеймер',year:2023,quality:'4K',imdb:8.5,kp:8.3,user:8.7,colors:['#212121','#f57f17'],img:P('oppen1xa')},
-    {title:'Фоллаут',year:2024,quality:'TS',imdb:8.4,kp:8.2,user:8.7,colors:['#212121','#f57f17'],img:P('fall1xa')},
-    {title:'Сёгун',year:2024,quality:'4K',imdb:8.7,kp:8.6,user:8.9,colors:['#b71c1c','#1a237e'],img:P('shogn1xa')},
     {title:'Белый Лотос',year:2025,quality:'4K',imdb:8.3,kp:8.1,user:8.6,colors:['#006064','#1a237e'],img:P('lotus1xa')},
-    {title:'Дикий робот',year:2024,quality:'4K',imdb:8.1,kp:8.3,user:8.7,colors:['#1b5e20','#0d47a1'],img:P('wrobot1xa')},
-    {title:'Медведь',year:2024,quality:'1080p',imdb:8.5,kp:8.3,user:8.9,colors:['#e65100','#212121'],img:P('bear1xa')},
-    {title:'Головоломка 2',year:2024,quality:'4K',imdb:7.5,kp:7.8,user:8.3,colors:['#f57f17','#6a1b9a'],img:P('inside2xa')}
+    {title:'Дикий робот',year:2024,quality:'4K',imdb:8.1,kp:8.3,user:8.7,colors:['#1b5e20','#0d47a1'],img:P('wrobot1xa')}
   ];
 
   function getHeroItems() { return MOCK_HERO; }
-
   function getSections() {
     return [
-      {title: 'Сейчас смотрят', items: MOCK_CARDS},
-      {title: 'Новинки',        items: MOCK_CARDS.slice().reverse()},
-      {title: 'Топ недели',     items: MOCK_CARDS.slice().sort(function(a,b){return b.imdb-a.imdb;})}
+      {title:'Загрузка...', items: MOCK_CARDS},
+      {title:'...',         items: MOCK_CARDS},
+      {title:'...',         items: MOCK_CARDS}
     ];
+  }
+
+  // Load real data, replace sections/hero when ready
+  function loadRealData(contentEl, heroWrap, bgInst) {
+    var got = {}, done = 0;
+    var ENDPOINTS = [
+      {key:'popular',  url:'movie/popular',     title:'Сейчас смотрят'},
+      {key:'trending', url:'trending/all/week',  title:'Trending'},
+      {key:'tv',       url:'tv/popular',         title:'Сериалы'}
+    ];
+
+    function rebuild() {
+      // Hero from trending or popular
+      var heroData = (got.trending || got.popular || []).slice(0,6);
+      if (heroData.length) hero = buildHero(heroData, heroWrap, bgInst);
+
+      // Rebuild sections
+      if (!contentEl) return;
+      contentEl.innerHTML = '';
+      rows = [];
+      ENDPOINTS.forEach(function(ep) {
+        var items = got[ep.key];
+        if (!items || !items.length) return;
+        var sec = buildSection(ep.title, items);
+        contentEl.appendChild(sec);
+        var cards = sec.querySelectorAll('.lmp-card');
+        var head  = sec.querySelector('.lmp-section__title');
+        cards.forEach(function(c,i){
+          c.style.opacity='0'; c.style.animation='none';
+          setTimeout(function(){ c.style.opacity=''; c.style.animation='springUp .5s cubic-bezier(.4,0,.2,1) '+(i*30)+'ms both'; },50);
+        });
+        rows.push({cards:Array.from(cards), items:items, head:head});
+      });
+    }
+
+    ENDPOINTS.forEach(function(ep) {
+      tmdbGet(ep.url, function(r) {
+        if (r && r.length) got[ep.key] = r;
+        if (++done === ENDPOINTS.length) rebuild();
+      });
+    });
   }
 
   // ─── Init ─────────────────────────────────────────────────
