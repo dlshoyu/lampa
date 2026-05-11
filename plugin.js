@@ -241,7 +241,7 @@
       if (m === 'cards' && rows.length) focusCard(0, 0);
     }
 
-    this.create = function() {
+    this.render = function() {
       html = document.createElement('div');
       html.className = 'lmp-wrap';
 
