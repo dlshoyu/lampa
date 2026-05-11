@@ -400,10 +400,11 @@
     // Find and hide Lampa's header (tries multiple selectors)
     var _hiddenEls = [];
     function hideHeader() {
-      var selectors = ['.header', '.activity__head', '.activity-slide__head', '.activity__title'];
+      // Lampa's head element has class '.head' (from 'Head init' in logs)
+      var selectors = ['.head', '.navigation-bar', '.layer__head', '.app__head'];
       selectors.forEach(function(sel) {
         document.querySelectorAll(sel).forEach(function(el) {
-          if (el.style.display !== 'none') {
+          if (el.getAttribute('data-lmp-hidden') === null) {
             el.setAttribute('data-lmp-hidden', el.style.display || '');
             el.style.display = 'none';
             _hiddenEls.push(el);
@@ -469,15 +470,16 @@
       var src = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb;
       if (!src) src = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources[Object.keys(Lampa.Api.sources||{})[0]];
       if (src && typeof src.get === 'function') {
-        src.get({
-          url: url,
-          onComplite: function(d){ cb((d && d.results || []).map(fromCard)); },
-          onComplete:  function(d){ cb((d && d.results || []).map(fromCard)); },
-          onError:     function(){ cb(null); }
+        // Lampa 3.x signature: get(urlString, params, onComplete, onError)
+        src.get(url, {page: 1}, function(d) {
+          cb((d && d.results || []).map(fromCard));
+        }, function(e) {
+          console.log('[LMP] src.get error for', url, e);
+          cb(null);
         });
         return;
       }
-    } catch(e) { console.log('[LMP] tmdbGet error', url, e); }
+    } catch(e) { console.log('[LMP] tmdbGet crash', url, e); }
     cb(null);
   }
 
