@@ -306,7 +306,6 @@
     this.start = function() {
       Lampa.Controller.add('content', {
         toggle: function() {
-          Lampa.Controller.collback('content');
           if (mode === 'hero') {
             var hcards = html.querySelectorAll('.lmp-hcard');
             hcards.forEach(function(c){ c.classList.remove('focused'); });
