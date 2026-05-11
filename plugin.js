@@ -408,25 +408,51 @@
   // ─── Init ─────────────────────────────────────────────────
   var menuAdded = false;
 
+  var MENU_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>';
+
   function addMenu() {
     if (menuAdded) return;
-    if (!Lampa || !Lampa.Menu || !Lampa.Menu.add) return;
+
+    // Метод 1: Lampa.Menu.add (если API доступен)
+    if (Lampa && Lampa.Menu && typeof Lampa.Menu.add === 'function') {
+      try {
+        Lampa.Menu.add({
+          title:    'Новый UI',
+          subtitle: 'Кастомный интерфейс',
+          icon:     MENU_ICON,
+          action: function() {
+            Lampa.Activity.push({ url:'', title:'Главная', component:'lampa_custom_home' });
+          }
+        });
+        menuAdded = true;
+        return;
+      } catch(e) {}
+    }
+
+    // Метод 2: прямая инъекция в DOM меню
+    var menuList = document.querySelector('.menu .menu__list');
+    if (!menuList) return; // ещё не отрендерено
+
+    if (menuList.querySelector('[data-lmp-custom]')) return; // уже добавлено
     menuAdded = true;
 
-    var ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z" opacity=".3"/><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/><path d="M5 7h14v2H5zm0 4h8v2H5z"/></svg>';
+    var li = document.createElement('li');
+    li.className = 'menu__item selector';
+    li.setAttribute('data-lmp-custom', '1');
+    li.innerHTML =
+      '<div class="menu__ico">' + MENU_ICON + '</div>' +
+      '<div class="menu__text">Новый UI</div>';
 
-    Lampa.Menu.add({
-      title:    'Новый UI',
-      subtitle: 'Кастомный интерфейс',
-      icon:     ICON,
-      action: function() {
-        Lampa.Activity.push({
-          url:       '',
-          title:     'Главная',
-          component: 'lampa_custom_home'
-        });
-      }
+    li.addEventListener('click', function() {
+      Lampa.Activity.push({ url:'', title:'Главная', component:'lampa_custom_home' });
     });
+
+    // Lampa TV-навигация
+    li.addEventListener('hover:enter', function() {
+      Lampa.Activity.push({ url:'', title:'Главная', component:'lampa_custom_home' });
+    });
+
+    menuList.appendChild(li);
   }
 
   function init() {
@@ -436,16 +462,20 @@
 
     Lampa.Component.add('lampa_custom_home', CustomHome);
 
-    // Попытка немедленно (если app уже запущен)
+    // Попробовать сразу
     addMenu();
 
-    // Подписка на события (если app ещё не запущен)
-    Lampa.Listener.follow('app:start', addMenu);
-    Lampa.Listener.follow('app:ready', addMenu);
+    // По событиям Lampa
+    ['app:start','app:ready','menu:open','menu:render'].forEach(function(ev) {
+      Lampa.Listener.follow(ev, addMenu);
+    });
 
-    // Fallback через таймер
-    setTimeout(addMenu, 500);
-    setTimeout(addMenu, 2000);
+    // Полинг — ждём появления .menu__list в DOM
+    var attempts = 0;
+    var poll = setInterval(function() {
+      addMenu();
+      if (menuAdded || ++attempts > 40) clearInterval(poll);
+    }, 500);
   }
 
   if (window.Lampa) init();
