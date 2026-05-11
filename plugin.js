@@ -392,11 +392,37 @@
         }
       });
       Lampa.Controller.toggle('content');
+
+      // Hide Lampa's own activity header bar
+      hideHeader();
     };
 
-    this.pause  = function() {};
-    this.resume = function() { Lampa.Controller.toggle('content'); };
+    // Find and hide Lampa's header (tries multiple selectors)
+    var _hiddenEls = [];
+    function hideHeader() {
+      var selectors = ['.header', '.activity__head', '.activity-slide__head', '.activity__title'];
+      selectors.forEach(function(sel) {
+        document.querySelectorAll(sel).forEach(function(el) {
+          if (el.style.display !== 'none') {
+            el.setAttribute('data-lmp-hidden', el.style.display || '');
+            el.style.display = 'none';
+            _hiddenEls.push(el);
+          }
+        });
+      });
+    }
+    function showHeader() {
+      _hiddenEls.forEach(function(el) {
+        el.style.display = el.getAttribute('data-lmp-hidden') || '';
+        el.removeAttribute('data-lmp-hidden');
+      });
+      _hiddenEls = [];
+    }
+
+    this.pause  = function() { showHeader(); };
+    this.resume = function() { Lampa.Controller.toggle('content'); hideHeader(); };
     this.destroy = function() {
+      showHeader();
       if (hero) hero.stop();
       html.remove();
     };
