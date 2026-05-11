@@ -455,12 +455,35 @@
     menuList.appendChild(li);
   }
 
+  function registerComponent() {
+    // Метод 1: стандартный Lampa.Component.add
+    if (Lampa.Component && typeof Lampa.Component.add === 'function') {
+      try {
+        Lampa.Component.add('lampa_custom_home', CustomHome);
+        console.log('[LMP] registered via Component.add');
+      } catch(e) { console.log('[LMP] Component.add error:', e); }
+    }
+
+    // Метод 2: перехват Lampa.Component.create (надёжный fallback)
+    if (Lampa.Component && typeof Lampa.Component.create === 'function') {
+      var _orig = Lampa.Component.create.bind(Lampa.Component);
+      Lampa.Component.create = function(name, activity) {
+        if (name === 'lampa_custom_home') {
+          console.log('[LMP] Component.create called for lampa_custom_home');
+          return new CustomHome(activity);
+        }
+        return _orig(name, activity);
+      };
+      console.log('[LMP] Component.create override set');
+    }
+  }
+
   function init() {
     var style = document.createElement('style');
     style.textContent = CSS;
     document.head.appendChild(style);
 
-    Lampa.Component.add('lampa_custom_home', CustomHome);
+    registerComponent();
 
     // Попробовать сразу
     addMenu();
