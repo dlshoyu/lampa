@@ -241,7 +241,7 @@
       if (m === 'cards' && rows.length) focusCard(0, 0);
     }
 
-    this.render = function() {
+    this.create = function() {
       html = document.createElement('div');
       html.className = 'lmp-wrap';
 
@@ -294,6 +294,12 @@
         requestAnimationFrame(loop);
       })();
 
+      return html;
+    };
+
+    // Lampa 3.x вызывает оба метода
+    this.render = function() {
+      if (!html) this.create();
       return html;
     };
 
