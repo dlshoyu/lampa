@@ -291,10 +291,12 @@
           pill.style.width = btn.offsetWidth + 'px';
           activeTab = tab;
           // Reload content
-          content.innerHTML = '';
-          rows = [];
           content.innerHTML = '<div class="lmp-empty">Загрузка...</div>';
-          loadRealData(content, heroEl, bg, tab, function(newRows){ rows = newRows; });
+          rows = [];
+          loadRealData(content, heroEl, bg, tab,
+            function(newHero) { hero = newHero; },
+            function(newRows) { rows = newRows; }
+          );
         });
         navBtns.push(btn);
         navEl.appendChild(btn);
@@ -323,7 +325,10 @@
       (function loop(){ bg.draw(); requestAnimationFrame(loop); })();
 
       // Load real data from Lampa/TMDB
-      loadRealData(content, heroEl, bg, activeTab, function(newRows) { rows = newRows; });
+      loadRealData(content, heroEl, bg, activeTab,
+        function(newHero) { hero = newHero; },
+        function(newRows) { rows = newRows; }
+      );
 
       return html;
     };
@@ -400,8 +405,8 @@
     // Find and hide Lampa's header (tries multiple selectors)
     var _hiddenEls = [];
     function hideHeader() {
-      // Lampa's head element has class '.head' (from 'Head init' in logs)
-      var selectors = ['.head', '.navigation-bar', '.layer__head', '.app__head'];
+      // Hide only the title/left side of Lampa's header, keep right-side action buttons
+      var selectors = ['.head__title', '.head__logo', '.head__back', '.head__left'];
       selectors.forEach(function(sel) {
         document.querySelectorAll(sel).forEach(function(el) {
           if (el.getAttribute('data-lmp-hidden') === null) {
@@ -486,23 +491,17 @@
   // ─── Load real data via Lampa TMDB API ──────────────────────
 
   // Load real data, replace sections/hero when ready
-  function loadRealData(contentEl, heroWrap, bgInst, tab, setRows) {
+  function loadRealData(contentEl, heroWrap, bgInst, tab, setHero, setRows) {
     var TITLES = ['Популярное', 'Сейчас идут', 'Топ рейтинга'];
     var listUrls = (tab && tab.listUrls) || ['movie/popular'];
     var heroUrl  = (tab && tab.heroUrl)  || listUrls[0];
     var got = {}, done = 0, total = listUrls.length + 1;
 
-    // Debug log available API sources
-    try {
-      var _s = Lampa.Api && Lampa.Api.sources;
-      console.log('[LMP] sources:', _s ? Object.keys(_s) : 'none');
-      if (_s && _s.tmdb) console.log('[LMP] tmdb fns:', Object.keys(_s.tmdb).filter(function(k){ return typeof _s.tmdb[k]==='function'; }));
-    } catch(e) {}
-
     function rebuild() {
       // Hero
       if (got._hero && got._hero.length) {
-        hero = buildHero(got._hero.slice(0,6), heroWrap, bgInst);
+        var newHero = buildHero(got._hero.slice(0,6), heroWrap, bgInst);
+        if (setHero) setHero(newHero);
       } else {
         var track = heroWrap.querySelector('.lmp-hero__track');
         if (track) track.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#444">Нет данных</div>';
