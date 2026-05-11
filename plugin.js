@@ -9,9 +9,9 @@
   var CSS = [
     '@keyframes springUp{0%{opacity:0;transform:translateY(22px) scale(.95)}55%{opacity:1;transform:translateY(-5px) scale(1.02)}75%{transform:translateY(2px)}100%{transform:translateY(0) scale(1)}}',
     '@keyframes kenBurns{0%{transform:scale(1)}50%{transform:scale(1.06) translate(-1%,.5%)}100%{transform:scale(1.04) translate(.8%,-.6%)}}',
-    '.lmp-wrap{position:relative;width:100%;min-height:100vh;max-height:100vh;background:#111119;font-family:Inter,sans-serif;overflow-x:hidden;overflow-y:auto}',
+    '.lmp-wrap{position:relative;width:100%;background:#111119;font-family:Inter,sans-serif;overflow-x:hidden}',
     '#lmp-bg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55}',
-    '.lmp-inner{position:relative;z-index:1;display:flex;flex-direction:column}',
+    '.lmp-inner{position:relative;z-index:1}',
     // HERO
     '.lmp-hero{position:relative;height:54vh;min-height:320px;overflow:hidden}',
     '.lmp-hero__track{display:flex;height:100%;transition:transform .6s cubic-bezier(.4,0,.2,1)}',
@@ -441,9 +441,9 @@
   function getHeroItems() { return MOCK_HERO; }
   function getSections() {
     return [
-      {title:'Загрузка...', items: MOCK_CARDS},
-      {title:'...',         items: MOCK_CARDS},
-      {title:'...',         items: MOCK_CARDS}
+      {title:'Сейчас смотрят', items: MOCK_CARDS},
+      {title:'Новинки',        items: MOCK_CARDS.slice().reverse()},
+      {title:'Топ недели',     items: MOCK_CARDS.slice().sort(function(a,b){return b.imdb-a.imdb;})}
     ];
   }
 
@@ -457,11 +457,18 @@
     ];
 
     function rebuild() {
+      // Check if any real data came back
+      var hasData = ENDPOINTS.some(function(ep){ return got[ep.key] && got[ep.key].length; });
+      if (!hasData) {
+        console.log('[LMP] No real data from API, keeping mock');
+        return; // keep initial mock sections
+      }
+
       // Hero from trending or popular
       var heroData = (got.trending || got.popular || []).slice(0,6);
       if (heroData.length) hero = buildHero(heroData, heroWrap, bgInst);
 
-      // Rebuild sections
+      // Rebuild sections with real data
       if (!contentEl) return;
       contentEl.innerHTML = '';
       var newRows = [];
