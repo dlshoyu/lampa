@@ -9,11 +9,17 @@
   var CSS = [
     '@keyframes springUp{0%{opacity:0;transform:translateY(22px) scale(.95)}55%{opacity:1;transform:translateY(-5px) scale(1.02)}75%{transform:translateY(2px)}100%{transform:translateY(0) scale(1)}}',
     '@keyframes kenBurns{0%{transform:scale(1)}50%{transform:scale(1.06) translate(-1%,.5%)}100%{transform:scale(1.04) translate(.8%,-.6%)}}',
-    '.lmp-wrap{position:relative;width:100%;background:#111119;font-family:Inter,sans-serif;overflow-x:hidden}',
+    '.lmp-wrap{position:relative;width:100%;height:100%;background:#111119;font-family:Inter,sans-serif;overflow-x:hidden;overflow-y:auto}',
     '#lmp-bg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55}',
     '.lmp-inner{position:relative;z-index:1}',
+    // NAV
+    '.lmp-nav{display:flex;align-items:center;gap:2px;padding:8px 20px;position:sticky;top:0;z-index:50;background:rgba(10,10,20,.9);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.05)}',
+    '.lmp-nav__btn{background:none;border:none;color:#777;font-family:inherit;font-size:13px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;transition:color .2s,background .2s;position:relative}',
+    '.lmp-nav__btn:hover{color:#fff;background:rgba(255,255,255,.07)}',
+    '.lmp-nav__btn.active{color:#fff}',
+    '#lmp-nav-pill{position:absolute;bottom:0;height:2px;background:linear-gradient(90deg,#e94560,#ff8a80);border-radius:2px;transition:left .3s cubic-bezier(.4,0,.2,1),width .3s;pointer-events:none}',
     // HERO
-    '.lmp-hero{position:relative;height:54vh;min-height:320px;overflow:hidden}',
+    '.lmp-hero{position:relative;height:54vh;min-height:300px;overflow:hidden}',
     '.lmp-hero__track{display:flex;height:100%;transition:transform .6s cubic-bezier(.4,0,.2,1)}',
     '.lmp-hcard{flex-shrink:0;width:46%;min-width:360px;height:100%;padding:12px 8px 12px 20px;cursor:pointer}',
     '.lmp-hcard__inner{width:100%;height:100%;border-radius:14px;overflow:hidden;position:relative;transition:transform .35s,box-shadow .35s}',
@@ -34,7 +40,7 @@
     '.lmp-hdot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);border:none;cursor:pointer;transition:all .3s}',
     '.lmp-hdot.active{background:#e94560;width:20px;border-radius:4px}',
     // SECTIONS
-    '.lmp-content{padding:14px 0 40px}',
+    '.lmp-content{padding:14px 0 60px}',
     '.lmp-section{margin-bottom:24px;overflow:visible}',
     '.lmp-section__head{display:flex;align-items:center;justify-content:space-between;padding:0 20px;margin-bottom:12px}',
     '.lmp-section__title{font-size:17px;font-weight:600;color:#fff}',
@@ -50,12 +56,11 @@
     '.lmp-card.focused .lmp-card__poster img{transform:scale(1.08)}',
     '.lmp-card__ratings{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 3px 4px;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent)}',
     '.lmp-crb{display:inline-flex;align-items:center;gap:2px;font-size:8.5px;font-weight:700;line-height:1;white-space:nowrap}',
-    '.lmp-crb svg{width:9px;height:9px;flex-shrink:0}',
     '.lmp-crb--imdb{color:#f5c518}.lmp-crb--kp{color:#ff6600}.lmp-crb--user{color:#63ca82}',
     '.lmp-crb--qual{color:#bbb;font-weight:800;letter-spacing:.5px}',
     '.lmp-card__title{margin-top:6px;font-size:12px;font-weight:500;color:#bbb;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}',
     '.lmp-card__year{font-size:10px;color:#555;margin-top:2px}',
-    '.lmp-card.entering{animation:springUp .5s cubic-bezier(.4,0,.2,1) both}'
+    '.lmp-empty{text-align:center;padding:60px 20px;color:#444;font-size:14px}'
   ].join('');
 
   // ─── Icons (CSS badges, no SVG text) ─────────────────────
@@ -232,6 +237,11 @@
       if (!card) return;
       card.classList.add('focused');
       card.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});
+      // Scroll section title into view for vertical navigation
+      if (html) {
+        var offset = row.head.offsetTop - 60;
+        html.scrollTop = offset;
+      }
       var m = row.items[cIdx];
       if (m && m.colors) bg.set(m.colors);
     }
@@ -256,46 +266,64 @@
       inner.className = 'lmp-inner';
       html.appendChild(inner);
 
-      // Hero
+      // ─── Nav bar ────────────────────────────────────────────
+      var navEl = document.createElement('nav');
+      navEl.className = 'lmp-nav';
+      var pill = document.createElement('div');
+      pill.id = 'lmp-nav-pill';
+      var NAV_TABS = [
+        {id:'main',     label:'Главная',     heroUrl:'trending/all/week', listUrls:['movie/popular','tv/popular','movie/top_rated']},
+        {id:'movies',   label:'Фильмы',      heroUrl:'movie/popular',     listUrls:['movie/popular','movie/now_playing','movie/top_rated']},
+        {id:'series',   label:'Сериалы',     heroUrl:'tv/popular',        listUrls:['tv/popular','tv/on_the_air','tv/top_rated']},
+        {id:'cartoons', label:'Мультфильмы', heroUrl:'movie/popular',     listUrls:['movie/popular']},
+      ];
+      var activeTab = NAV_TABS[0];
+      var navBtns = [];
+      NAV_TABS.forEach(function(tab, i) {
+        var btn = document.createElement('button');
+        btn.className = 'lmp-nav__btn' + (i === 0 ? ' active' : '');
+        btn.textContent = tab.label;
+        btn.addEventListener('click', function() {
+          navBtns.forEach(function(b){ b.classList.remove('active'); });
+          btn.classList.add('active');
+          // Move pill
+          pill.style.left  = btn.offsetLeft + 'px';
+          pill.style.width = btn.offsetWidth + 'px';
+          activeTab = tab;
+          // Reload content
+          content.innerHTML = '';
+          rows = [];
+          content.innerHTML = '<div class="lmp-empty">Загрузка...</div>';
+          loadRealData(content, heroEl, bg, tab, function(newRows){ rows = newRows; });
+        });
+        navBtns.push(btn);
+        navEl.appendChild(btn);
+      });
+      navEl.appendChild(pill);
+      inner.appendChild(navEl);
+      // Init pill position
+      requestAnimationFrame(function(){
+        var first = navBtns[0];
+        if(first){ pill.style.left=first.offsetLeft+'px'; pill.style.width=first.offsetWidth+'px'; }
+      });
+
+      // ─── Hero ───────────────────────────────────────────────
       var heroEl = document.createElement('div');
       heroEl.className = 'lmp-hero';
       heroEl.innerHTML = '<div class="lmp-hero__track"></div><div class="lmp-hero__ctrls"></div>';
       inner.appendChild(heroEl);
 
-      // Content
+      // ─── Content ────────────────────────────────────────────
       var content = document.createElement('div');
       content.className = 'lmp-content';
+      content.innerHTML = '<div class="lmp-empty">Загрузка...</div>';
       inner.appendChild(content);
 
-      // Use Lampa card data if available, else mock
-      var sections = getSections();
-      sections.forEach(function(s) {
-        var sec = buildSection(s.title, s.items);
-        content.appendChild(sec);
-        var cards = sec.querySelectorAll('.lmp-card');
-        var head  = sec.querySelector('.lmp-section__title');
-        // animate
-        cards.forEach(function(c, i) {
-          c.style.opacity = '0'; c.style.animation = 'none';
-          setTimeout(function() {
-            c.style.opacity = '';
-            c.style.animation = 'springUp .5s cubic-bezier(.4,0,.2,1) ' + (i*35) + 'ms both';
-          }, 50);
-        });
-        rows.push({cards: Array.from(cards), items: s.items, head: head});
-      });
-
-      // Hero carousel (mock first, real data will replace)
-      hero = buildHero(getHeroItems(), heroEl, bg);
-
       // BG animation loop
-      (function loop() {
-        bg.draw();
-        requestAnimationFrame(loop);
-      })();
+      (function loop(){ bg.draw(); requestAnimationFrame(loop); })();
 
       // Load real data from Lampa/TMDB
-      loadRealData(content, heroEl, bg, function(newRows) { rows = newRows; });
+      loadRealData(content, heroEl, bg, activeTab, function(newRows) { rows = newRows; });
 
       return html;
     };
@@ -423,77 +451,58 @@
     cb(null);
   }
 
-  // Mock fallbacks
-  function P(s,w,h){ w=w||300;h=h||450; return 'https://picsum.photos/seed/'+s+'/'+w+'/'+h; }
-  function H(s){ return P(s,900,520); }
-  var MOCK_HERO = [
-    {title:'Дюна: Часть третья',year:2026,quality:'4K',imdb:8.5,kp:8.7,user:9.0,colors:['#e65100','#bf360c','#4e342e'],desc:'Пол Атрейдес ведёт фременов в последний бой.',img:H('dune3ba')},
-    {title:'Последние из нас 3',year:2026,quality:'4K',imdb:9.0,kp:9.3,user:9.5,colors:['#1b5e20','#4e342e','#212121'],desc:'Джоэл и Элли снова в пути.',img:H('tlou3ba')},
-    {title:'В чужой шкуре',year:2026,quality:'4K',imdb:8.9,kp:9.1,user:9.3,colors:['#263238','#4a148c','#006064'],desc:'Триллер о человеке, который просыпается в чужом теле.',img:H('skinswap26a')}
-  ];
-  var MOCK_CARDS = [
-    {title:'Мортал Комбат 2',year:2026,quality:'4K',imdb:7.2,kp:7.8,user:8.5,colors:['#b71c1c','#1a0a00'],img:P('mk2axa')},
-    {title:'Оппенгеймер',year:2023,quality:'4K',imdb:8.5,kp:8.3,user:8.7,colors:['#212121','#f57f17'],img:P('oppen1xa')},
-    {title:'Белый Лотос',year:2025,quality:'4K',imdb:8.3,kp:8.1,user:8.6,colors:['#006064','#1a237e'],img:P('lotus1xa')},
-    {title:'Дикий робот',year:2024,quality:'4K',imdb:8.1,kp:8.3,user:8.7,colors:['#1b5e20','#0d47a1'],img:P('wrobot1xa')}
-  ];
-
-  function getHeroItems() { return MOCK_HERO; }
-  function getSections() {
-    return [
-      {title:'Сейчас смотрят', items: MOCK_CARDS},
-      {title:'Новинки',        items: MOCK_CARDS.slice().reverse()},
-      {title:'Топ недели',     items: MOCK_CARDS.slice().sort(function(a,b){return b.imdb-a.imdb;})}
-    ];
-  }
+  // ─── Load real data via Lampa TMDB API ──────────────────────
 
   // Load real data, replace sections/hero when ready
-  function loadRealData(contentEl, heroWrap, bgInst, setRows) {
-    var got = {}, done = 0;
-    var ENDPOINTS = [
-      {key:'popular',  url:'movie/popular',     title:'Сейчас смотрят'},
-      {key:'trending', url:'trending/all/week',  title:'Trending'},
-      {key:'tv',       url:'tv/popular',         title:'Сериалы'}
-    ];
+  function loadRealData(contentEl, heroWrap, bgInst, tab, setRows) {
+    var TITLES = ['Популярное', 'Сейчас идут', 'Топ рейтинга'];
+    var listUrls = (tab && tab.listUrls) || ['movie/popular'];
+    var heroUrl  = (tab && tab.heroUrl)  || listUrls[0];
+    var got = {}, done = 0, total = listUrls.length + 1;
+
+    // Debug log available API sources
+    try {
+      var _s = Lampa.Api && Lampa.Api.sources;
+      console.log('[LMP] sources:', _s ? Object.keys(_s) : 'none');
+      if (_s && _s.tmdb) console.log('[LMP] tmdb fns:', Object.keys(_s.tmdb).filter(function(k){ return typeof _s.tmdb[k]==='function'; }));
+    } catch(e) {}
 
     function rebuild() {
-      // Check if any real data came back
-      var hasData = ENDPOINTS.some(function(ep){ return got[ep.key] && got[ep.key].length; });
-      if (!hasData) {
-        console.log('[LMP] No real data from API, keeping mock');
-        return; // keep initial mock sections
+      // Hero
+      if (got._hero && got._hero.length) {
+        hero = buildHero(got._hero.slice(0,6), heroWrap, bgInst);
+      } else {
+        var track = heroWrap.querySelector('.lmp-hero__track');
+        if (track) track.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#444">Нет данных</div>';
       }
-
-      // Hero from trending or popular
-      var heroData = (got.trending || got.popular || []).slice(0,6);
-      if (heroData.length) hero = buildHero(heroData, heroWrap, bgInst);
-
-      // Rebuild sections with real data
       if (!contentEl) return;
       contentEl.innerHTML = '';
+      var hasAny = listUrls.some(function(_,i){ return got[i] && got[i].length; });
+      if (!hasAny) {
+        contentEl.innerHTML = '<div class="lmp-empty">Не удалось загрузить данные. См. консоль [LMP]</div>';
+        if (setRows) setRows([]);
+        return;
+      }
       var newRows = [];
-      ENDPOINTS.forEach(function(ep) {
-        var items = got[ep.key];
+      listUrls.forEach(function(url, i) {
+        var items = got[i];
         if (!items || !items.length) return;
-        var sec = buildSection(ep.title, items);
+        var sec = buildSection(TITLES[i] || ('Раздел ' + (i+1)), items);
         contentEl.appendChild(sec);
         var cards = sec.querySelectorAll('.lmp-card');
         var head  = sec.querySelector('.lmp-section__title');
-        cards.forEach(function(c,i){
+        cards.forEach(function(c,j){
           c.style.opacity='0'; c.style.animation='none';
-          setTimeout(function(){ c.style.opacity=''; c.style.animation='springUp .5s cubic-bezier(.4,0,.2,1) '+(i*30)+'ms both'; },50);
+          setTimeout(function(){ c.style.opacity=''; c.style.animation='springUp .5s cubic-bezier(.4,0,.2,1) '+(j*28)+'ms both'; },50);
         });
         newRows.push({cards:Array.from(cards), items:items, head:head});
       });
       if (setRows) setRows(newRows);
     }
 
-    ENDPOINTS.forEach(function(ep) {
-      tmdbGet(ep.url, function(r) {
-        if (r && r.length) got[ep.key] = r;
-        if (++done === ENDPOINTS.length) rebuild();
-      });
-    });
+    function check() { if (++done >= total) rebuild(); }
+    tmdbGet(heroUrl, function(r){ got._hero = r; check(); });
+    listUrls.forEach(function(url,i){ tmdbGet(url, function(r){ got[i]=r; check(); }); });
   }
 
   // ─── Init ─────────────────────────────────────────────────
