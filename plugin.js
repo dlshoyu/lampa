@@ -14,7 +14,7 @@
     '.lmp-inner{position:relative;z-index:1}',
     // NAV
     '.lmp-nav{display:flex;align-items:center;gap:2px;padding:8px 20px;position:sticky;top:0;z-index:50;background:rgba(10,10,20,.9);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.05)}',
-    '.lmp-nav__btn{background:none;border:none;color:#777;font-family:inherit;font-size:13px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;transition:color .2s,background .2s;position:relative}',
+    '.lmp-nav__btn{background:none;border:none;color:#aaa;font-family:inherit;font-size:12px;font-weight:500;padding:5px 10px;border-radius:6px;cursor:pointer;transition:color .2s,background .2s;position:relative;white-space:nowrap}',
     '.lmp-nav__btn:hover{color:#fff;background:rgba(255,255,255,.07)}',
     '.lmp-nav__btn.active{color:#fff}',
     '#lmp-nav-pill{position:absolute;bottom:0;height:2px;background:linear-gradient(90deg,#e94560,#ff8a80);border-radius:2px;transition:left .3s cubic-bezier(.4,0,.2,1),width .3s;pointer-events:none}',
@@ -434,30 +434,50 @@
         });
       });
 
-      // Inject our nav buttons into Lampa's .head on the LEFT side
+      // Inject our nav buttons into Lampa's .head between left and right icons
       var headEl = document.querySelector('.head');
       var navEl  = html && html.querySelector('.lmp-nav');
       if (headEl && navEl && !_injectedNav) {
         var headH = headEl.offsetHeight || 52;
-        // Find leftmost right-side icon to know where to stop
-        var rightIcons = headEl.querySelector('.head__right, .head__actions, .head__menu');
-        // Move our nav into head DOM so it sits left, before right icons
+        headEl.style.position = 'relative';
+        // Apply base styles (left/right will be set after measurement)
         navEl.style.cssText = [
           'position:absolute',
           'top:0',
           'left:0',
+          'right:0',
           'height:' + headH + 'px',
-          'padding:0 8px',
+          'padding:0 4px',
           'background:transparent',
           'backdrop-filter:none',
           'border-bottom:none',
           'z-index:10000',
-          'pointer-events:auto'
+          'pointer-events:auto',
+          'overflow:hidden'
         ].join(';');
-        // Prepend into headEl so it flows left
-        headEl.style.position = 'relative';
-        headEl.insertBefore(navEl, headEl.firstChild);
+        // Append at end so we don't disturb existing DOM order
+        headEl.appendChild(navEl);
         _injectedNav = navEl;
+        // Measure left and right icon areas after render
+        requestAnimationFrame(function() {
+          var headRect = headEl.getBoundingClientRect();
+          var leftBound = 0;
+          var rightBound = 0;
+          Array.from(headEl.children).forEach(function(child) {
+            if (child === navEl) return;
+            var r = child.getBoundingClientRect();
+            var midX = r.left + r.width / 2 - headRect.left;
+            if (midX < headRect.width / 2) {
+              // left-side element
+              leftBound = Math.max(leftBound, r.right - headRect.left + 4);
+            } else {
+              // right-side element
+              rightBound = Math.max(rightBound, headRect.right - r.left + 4);
+            }
+          });
+          navEl.style.left  = leftBound  + 'px';
+          navEl.style.right = rightBound + 'px';
+        });
       }
     }
     function showHeader() {
