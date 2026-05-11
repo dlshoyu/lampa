@@ -440,44 +440,56 @@
       if (headEl && navEl && !_injectedNav) {
         var headH = headEl.offsetHeight || 52;
         headEl.style.position = 'relative';
-        // Apply base styles (left/right will be set after measurement)
+        // Safe defaults so buttons are always visible
         navEl.style.cssText = [
           'position:absolute',
           'top:0',
-          'left:0',
-          'right:0',
+          'left:100px',
+          'right:360px',
           'height:' + headH + 'px',
           'padding:0 4px',
           'background:transparent',
           'backdrop-filter:none',
           'border-bottom:none',
           'z-index:10000',
-          'pointer-events:auto',
-          'overflow:hidden'
+          'pointer-events:auto'
         ].join(';');
-        // Append at end so we don't disturb existing DOM order
         headEl.appendChild(navEl);
         _injectedNav = navEl;
-        // Measure left and right icon areas after render
-        requestAnimationFrame(function() {
+        // Refine position after layout settles
+        setTimeout(function() {
+          if (!_injectedNav) return;
           var headRect = headEl.getBoundingClientRect();
-          var leftBound = 0;
-          var rightBound = 0;
-          Array.from(headEl.children).forEach(function(child) {
-            if (child === navEl) return;
-            var r = child.getBoundingClientRect();
-            var midX = r.left + r.width / 2 - headRect.left;
-            if (midX < headRect.width / 2) {
-              // left-side element
-              leftBound = Math.max(leftBound, r.right - headRect.left + 4);
-            } else {
-              // right-side element
-              rightBound = Math.max(rightBound, headRect.right - r.left + 4);
-            }
-          });
-          navEl.style.left  = leftBound  + 'px';
-          navEl.style.right = rightBound + 'px';
-        });
+          var leftW = 0, rightW = 0;
+          // Try Lampa's named selectors first
+          var leftEl  = headEl.querySelector('.head__left, .head__back');
+          var rightEl = headEl.querySelector('.head__right, .head__actions');
+          if (leftEl) {
+            leftW = Math.round(leftEl.getBoundingClientRect().right - headRect.left + 8);
+          }
+          if (rightEl) {
+            rightW = Math.round(headRect.right - rightEl.getBoundingClientRect().left + 8);
+          }
+          // Fallback: scan direct children
+          if (!leftW || !rightW) {
+            Array.from(headEl.children).forEach(function(child) {
+              if (child === navEl) return;
+              var r = child.getBoundingClientRect();
+              if (!r.width) return;
+              var midX = r.left + r.width / 2 - headRect.left;
+              if (midX < headRect.width / 2) {
+                leftW = Math.max(leftW, Math.round(r.right - headRect.left + 8));
+              } else {
+                rightW = Math.max(rightW, Math.round(headRect.right - r.left + 8));
+              }
+            });
+          }
+          // Apply only if there is enough room
+          if (leftW > 0 && rightW > 0 && leftW + rightW < headRect.width - 80) {
+            navEl.style.left  = leftW  + 'px';
+            navEl.style.right = rightW + 'px';
+          }
+        }, 200);
       }
     }
     function showHeader() {
