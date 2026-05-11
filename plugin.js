@@ -295,7 +295,7 @@
       })();
 
       // Load real data from Lampa/TMDB
-      loadRealData(content, heroEl, bg);
+      loadRealData(content, heroEl, bg, function(newRows) { rows = newRows; });
 
       return html;
     };
@@ -446,7 +446,7 @@
   }
 
   // Load real data, replace sections/hero when ready
-  function loadRealData(contentEl, heroWrap, bgInst) {
+  function loadRealData(contentEl, heroWrap, bgInst, setRows) {
     var got = {}, done = 0;
     var ENDPOINTS = [
       {key:'popular',  url:'movie/popular',     title:'Сейчас смотрят'},
@@ -462,7 +462,7 @@
       // Rebuild sections
       if (!contentEl) return;
       contentEl.innerHTML = '';
-      rows = [];
+      var newRows = [];
       ENDPOINTS.forEach(function(ep) {
         var items = got[ep.key];
         if (!items || !items.length) return;
@@ -474,8 +474,9 @@
           c.style.opacity='0'; c.style.animation='none';
           setTimeout(function(){ c.style.opacity=''; c.style.animation='springUp .5s cubic-bezier(.4,0,.2,1) '+(i*30)+'ms both'; },50);
         });
-        rows.push({cards:Array.from(cards), items:items, head:head});
+        newRows.push({cards:Array.from(cards), items:items, head:head});
       });
+      if (setRows) setRows(newRows);
     }
 
     ENDPOINTS.forEach(function(ep) {
