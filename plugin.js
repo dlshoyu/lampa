@@ -14,7 +14,7 @@
     '.lmp-inner{position:relative;z-index:1}',
     // NAV
     '.lmp-nav{display:flex;align-items:center;gap:2px;padding:8px 20px;position:sticky;top:0;z-index:50;background:rgba(10,10,20,.9);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.05)}',
-    '.lmp-nav__btn{background:none;border:none;color:#bbb;font-family:inherit;font-size:15px;font-weight:500;padding:0 16px;height:100%;border-radius:6px;cursor:pointer;transition:color .2s,background .2s;position:relative;white-space:nowrap}',
+    '.lmp-nav__btn{background:none;border:none;color:#bbb;font-family:inherit;font-size:15px;font-weight:500;padding:0 16px;height:100%;border-radius:6px;cursor:pointer;transition:color .2s,background .2s;position:relative;white-space:nowrap;pointer-events:auto}',
     '.lmp-nav__btn:hover{color:#fff;background:rgba(255,255,255,.07)}',
     '.lmp-nav__btn.active{color:#fff}',
     '#lmp-nav-pill{position:absolute;bottom:0;height:2px;background:linear-gradient(90deg,#e94560,#ff8a80);border-radius:2px;transition:left .3s cubic-bezier(.4,0,.2,1),width .3s;pointer-events:none}',
@@ -438,37 +438,43 @@
       var navEl  = html && html.querySelector('.lmp-nav');
       if (headEl && navEl && !_injectedNav) {
         var headH = headEl.offsetHeight || 52;
-        // Apply nav styles: position fixed, safe defaults
+        // pointer-events:none on wrapper — only buttons capture clicks
         navEl.style.cssText = [
           'position:fixed',
           'top:0',
-          'left:150px',
-          'right:420px',
+          'left:140px',
+          'right:0',
           'height:' + headH + 'px',
           'padding:0 4px',
           'background:transparent',
           'backdrop-filter:none',
           'border-bottom:none',
-          'z-index:10001',
-          'pointer-events:auto',
+          'z-index:9999',
+          'pointer-events:none',
           'display:flex',
           'align-items:center'
         ].join(';');
-        // Move to body so fixed positioning works independently
         document.body.appendChild(navEl);
         _injectedNav = navEl;
-        // After layout, refine using actual Lampa element boundaries
+        // Refine left boundary after layout
         setTimeout(function() {
           if (!_injectedNav) return;
-          var headRect = headEl.getBoundingClientRect();
-          var leftEl   = headEl.querySelector('.head__left');
-          var rightEl  = headEl.querySelector('.head__right');
-          if (leftEl && rightEl) {
-            var leftPx  = Math.round(leftEl.getBoundingClientRect().right + 8);
-            var rightPx = Math.round(window.innerWidth - rightEl.getBoundingClientRect().left + 8);
-            navEl.style.left  = leftPx  + 'px';
-            navEl.style.right = rightPx + 'px';
-          }
+          var leftEdge = 0;
+          // Scan ALL elements inside head to find rightmost left-side element
+          headEl.querySelectorAll('*').forEach(function(el) {
+            if (navEl.contains(el)) return;
+            var r = el.getBoundingClientRect();
+            // Skip zero-size, very wide containers, and right-half elements
+            if (!r.width || !r.height) return;
+            if (r.width > window.innerWidth * 0.3) return;
+            var midX = r.left + r.width / 2;
+            if (midX < window.innerWidth / 2) {
+              leftEdge = Math.max(leftEdge, r.right);
+            }
+          });
+          // Ensure minimum clearance
+          leftEdge = Math.max(leftEdge + 12, 120);
+          navEl.style.left = leftEdge + 'px';
         }, 300);
       }
     }
