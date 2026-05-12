@@ -14,7 +14,7 @@
     '.lmp-inner{position:relative;z-index:1}',
     // NAV
     '.lmp-nav{display:flex;align-items:center;gap:2px;padding:8px 20px;position:sticky;top:0;z-index:50;background:rgba(10,10,20,.9);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.05)}',
-    '.lmp-nav__btn{background:none;border:none;color:#bbb;font-family:inherit;font-size:18px;font-weight:600;padding:0 16px;height:100%;border-radius:6px;cursor:pointer;transition:color .2s,background .2s;position:relative;white-space:nowrap;pointer-events:auto;letter-spacing:.01em}',
+    '.lmp-nav__btn{background:none;border:none;color:#bbb;font-family:inherit;font-size:22px;font-weight:700;padding:0 18px;height:100%;border-radius:6px;cursor:pointer;transition:color .2s,background .2s;position:relative;white-space:nowrap;pointer-events:auto;letter-spacing:.01em}',
     '.lmp-nav__btn:hover{color:#fff;background:rgba(255,255,255,.07)}',
     '.lmp-nav__btn.active{color:#fff}',
     '#lmp-nav-pill{position:absolute;bottom:0;height:2px;background:linear-gradient(90deg,#e94560,#ff8a80);border-radius:2px;transition:left .3s cubic-bezier(.4,0,.2,1),width .3s;pointer-events:none}',
@@ -206,37 +206,57 @@
 
     function realIdx(v) { return ((v - CLONE) % real + real) % real; }
 
-    function moveTo(idx, animate) {
-      var w = track.parentElement.offsetWidth * 0.46 + 14;
-      if (!animate) track.style.transition = 'none';
-      else track.style.transition = 'transform .6s cubic-bezier(.4,0,.2,1)';
-      track.style.transform = 'translateX(-' + (idx * w) + 'px)';
+    function cardWidth() {
+      var w = track.parentElement.offsetWidth;
+      return (w > 0 ? w : window.innerWidth) * 0.46 + 14;
+    }
+
+    // Мгновенно переставить без анимации
+    function jumpTo(idx) {
+      track.style.transition = 'none';
+      track.style.transform = 'translateX(-' + (idx * cardWidth()) + 'px)';
       var ri = realIdx(idx);
       dots.forEach(function(d, i){ d.classList.toggle('active', i === ri); });
-      var cards = track.querySelectorAll('.lmp-hcard');
-      cards.forEach(function(el){ el.classList.remove('focused'); });
-      if (cards[idx]) cards[idx].classList.add('focused');
+      var hcards = track.querySelectorAll('.lmp-hcard');
+      hcards.forEach(function(el){ el.classList.remove('focused'); });
+      if (hcards[idx]) hcards[idx].classList.add('focused');
+    }
+
+    // Анимированно перейти к виртуальному индексу
+    function moveTo(idx) {
+      track.style.transition = 'transform .6s cubic-bezier(.4,0,.2,1)';
+      track.style.transform = 'translateX(-' + (idx * cardWidth()) + 'px)';
+      var ri = realIdx(idx);
+      dots.forEach(function(d, i){ d.classList.toggle('active', i === ri); });
+      var hcards = track.querySelectorAll('.lmp-hcard');
+      hcards.forEach(function(el){ el.classList.remove('focused'); });
+      if (hcards[idx]) hcards[idx].classList.add('focused');
       if (items[ri] && items[ri].colors) bg.set(items[ri].colors);
     }
 
     function goTo(virtIdx) {
       if (jumping) return;
       cur = virtIdx;
-      moveTo(cur, true);
+      moveTo(cur);
 
-      // После анимации — тихо перепрыгнуть на реальный индекс если вышли за края
+      // После завершения анимации (.6s + небольшой запас) —
+      // тихо прыгнуть на настоящий индекс если вышли за клоны
       setTimeout(function() {
-        var ri = realIdx(cur);
         if (cur < CLONE || cur >= CLONE + real) {
           jumping = true;
+          var ri = realIdx(cur);
           cur = CLONE + ri;
-          moveTo(cur, false);
-          // Форсируем reflow чтобы убрать transition перед след. кадром
+          // Отключаем transition
+          track.style.transition = 'none';
+          track.style.transform = 'translateX(-' + (cur * cardWidth()) + 'px)';
+          // Форсируем reflow чтобы браузер зафиксировал новую позицию
           void track.offsetWidth;
-          track.style.transition = 'transform .6s cubic-bezier(.4,0,.2,1)';
-          jumping = false;
+          // Снимаем блокировку только в следующем кадре
+          requestAnimationFrame(function() {
+            jumping = false;
+          });
         }
-      }, 650);
+      }, 680);
     }
 
     // animate-in только реальные карточки
@@ -249,7 +269,7 @@
       }, 30);
     });
 
-    // Click handlers
+    // Click + hover handlers
     track.querySelectorAll('.lmp-hcard').forEach(function(el, i) {
       el.addEventListener('click', function() {
         if (cur === i) {
@@ -259,10 +279,19 @@
           goTo(i);
         }
       });
-      // mouseenter → фокус
+      // Mouse hover → .focused + фон
       el.addEventListener('mouseenter', function() {
         var m = extended[i];
         if (m && m.colors) bg.set(m.colors);
+        // Добавляем focused только на эту карточку
+        track.querySelectorAll('.lmp-hcard').forEach(function(c){ c.classList.remove('focused'); });
+        el.classList.add('focused');
+      });
+      el.addEventListener('mouseleave', function() {
+        el.classList.remove('focused');
+        // Вернуть focused на текущую активную
+        var hcards = track.querySelectorAll('.lmp-hcard');
+        if (hcards[cur]) hcards[cur].classList.add('focused');
       });
     });
 
@@ -270,7 +299,11 @@
       d.addEventListener('click', function(e) { e.stopPropagation(); goTo(CLONE + i); });
     });
 
-    moveTo(cur, false);
+    // Устанавливаем начальную позицию только когда размеры известны
+    requestAnimationFrame(function() {
+      jumpTo(cur);
+    });
+
     var timer = setInterval(function() { goTo(cur + 1); }, 5000);
 
     return {
@@ -338,10 +371,10 @@
       var pill = document.createElement('div');
       pill.id = 'lmp-nav-pill';
       var NAV_TABS = [
-        {id:'main',     label:'Главная',     heroUrl:'trending/all/week', listUrls:['movie/popular','tv/popular','movie/top_rated']},
-        {id:'movies',   label:'Фильмы',      heroUrl:'movie/popular',     listUrls:['movie/popular','movie/now_playing','movie/top_rated']},
-        {id:'series',   label:'Сериалы',     heroUrl:'tv/popular',        listUrls:['tv/popular','tv/on_the_air','tv/top_rated']},
-        {id:'cartoons', label:'Мультфильмы', heroUrl:'movie/popular',     listUrls:['movie/popular']},
+        {id:'main',     label:'Главная',     heroUrl:'trending/all/week',           listUrls:['movie/popular','tv/popular','movie/top_rated']},
+        {id:'movies',   label:'Фильмы',      heroUrl:'movie/popular',               listUrls:['movie/popular','movie/now_playing','movie/top_rated']},
+        {id:'series',   label:'Сериалы',     heroUrl:'tv/popular',                  listUrls:['tv/popular','tv/on_the_air','tv/top_rated']},
+        {id:'cartoons', label:'Мультфильмы', heroUrl:'discover/movie?with_genres=16', listUrls:['discover/movie?with_genres=16','discover/movie?with_genres=16&sort_by=vote_average.desc&vote_count.gte=300','discover/tv?with_genres=16']},
       ];
       var activeTab = NAV_TABS[0];
       var navBtns = [];
@@ -568,6 +601,26 @@
   // ─── Data: Lampa TMDB API + mock fallback ────────────────
   var IMG = 'https://image.tmdb.org/t/p/';
 
+  // Генерируем уникальную цветовую палитру на основе id фильма
+  function itemColors(id) {
+    var n = id || 0;
+    // Золотое сечение для хорошего распределения оттенков
+    var h1 = (n * 137.508) % 360;
+    var h2 = (h1 + 80)  % 360;
+    var h3 = (h1 + 200) % 360;
+    function hsl2hex(h, s, l) {
+      s /= 100; l /= 100;
+      var a = s * Math.min(l, 1 - l);
+      function f(n) {
+        var k = (n + h / 30) % 12;
+        var c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+        return Math.round(255 * c).toString(16).padStart(2, '0');
+      }
+      return '#' + f(0) + f(8) + f(4);
+    }
+    return [hsl2hex(h1, 55, 14), hsl2hex(h2, 45, 10), hsl2hex(h3, 50, 8)];
+  }
+
   function fromCard(item) {
     var score = item.vote_average ? (+item.vote_average).toFixed(1) : '—';
     var year  = (item.release_date || item.first_air_date || '').slice(0,4);
@@ -583,7 +636,7 @@
       img:    item.poster_path   ? IMG+'w342'+item.poster_path   : 'https://picsum.photos/seed/p'+item.id+'/300/450',
       // Hero использует original для максимального качества
       imgH:   item.backdrop_path ? IMG+'original'+item.backdrop_path : 'https://picsum.photos/seed/h'+item.id+'/1920/1080',
-      colors: ['#1a1a3e','#2d0a3e','#0a1a2e'],
+      colors: itemColors(item.id),
       method: item.media_type === 'tv' ? 'tv' : (item.first_air_date ? 'tv' : 'movie'),
       card:   item
     };
@@ -654,10 +707,16 @@
             c.style.opacity='';
             c.style.animation='springUp .5s cubic-bezier(.4,0,.2,1) '+(j*28)+'ms both';
           }, 50);
-          // mouseenter → фон по цветам карточки
+          // Mouse hover → .focused + фон
           c.addEventListener('mouseenter', function() {
             var m = items[j];
             if (m && m.colors) bgInst.set(m.colors);
+            // Убрать focused у всех карточек всех рядов, добавить этой
+            newRows.forEach(function(r){ r.cards.forEach(function(x){ x.classList.remove('focused'); }); });
+            c.classList.add('focused');
+          });
+          c.addEventListener('mouseleave', function() {
+            c.classList.remove('focused');
           });
         });
         newRows.push({cards:Array.from(cards), items:items, head:head});
@@ -678,52 +737,61 @@
   }
 
   // ─── Lampa Settings GUI ───────────────────────────────────
+  var LMP_SETTINGS = [
+    {
+      name: 'lmp_hero_count', type: 'select', default: '8',
+      values: {'4':'4 карточки','6':'6 карточек','8':'8 карточек','10':'10 карточек'},
+      label: 'Новый UI: карточек в Hero',
+      desc:  'Сколько постеров показывать в карусели'
+    },
+    {
+      name: 'lmp_content_lang', type: 'select', default: 'ru',
+      values: {ru:'Русский', en:'English'},
+      label: 'Новый UI: язык контента',
+      desc:  'Язык названий и описаний'
+    },
+    {
+      name: 'lmp_image_quality', type: 'select', default: 'original',
+      values: {original:'Оригинал', w1280:'1280px', w780:'780px'},
+      label: 'Новый UI: качество фото Hero',
+      desc:  'Разрешение фонов в карусели'
+    }
+  ];
+
   function registerSettings() {
-    if (!(Lampa && Lampa.SettingsApi && typeof Lampa.SettingsApi.addParam === 'function')) return;
-    try {
-      // Группа настроек плагина
-      Lampa.SettingsApi.addParam({
-        component: 'general',
-        param: {
-          name:  'lmp_hero_count',
-          type:  'select',
-          values: {4:'4',6:'6',8:'8',10:'10'},
-          default: '6'
-        },
-        field: {
-          name: 'Новый UI: кол-во карточек в Hero',
-          description: 'Сколько постеров показывать в карусели вверху'
-        }
-      });
-      Lampa.SettingsApi.addParam({
-        component: 'general',
-        param: {
-          name:  'lmp_content_lang',
-          type:  'select',
-          values: {ru:'Русский',en:'Английский'},
-          default: 'ru'
-        },
-        field: {
-          name: 'Новый UI: язык контента',
-          description: 'Язык названий фильмов и описаний'
-        }
-      });
-      Lampa.SettingsApi.addParam({
-        component: 'general',
-        param: {
-          name:  'lmp_image_quality',
-          type:  'select',
-          values: {original:'Оригинал (медленнее)',w1280:'1280px (быстрее)',w780:'780px (экономия)'},
-          default: 'original'
-        },
-        field: {
-          name: 'Новый UI: качество фото Hero',
-          description: 'Разрешение фоновых изображений в карусели'
-        }
-      });
-      console.log('[LMP] Settings registered via SettingsApi');
-    } catch(e) {
-      console.log('[LMP] SettingsApi error:', e);
+    // Метод 1: Lampa.SettingsApi (новые сборки)
+    if (Lampa && Lampa.SettingsApi && typeof Lampa.SettingsApi.addParam === 'function') {
+      try {
+        LMP_SETTINGS.forEach(function(s) {
+          Lampa.SettingsApi.addParam({
+            component: 'general',
+            param: { name: s.name, type: s.type, values: s.values, default: s.default },
+            field: { name: s.label, description: s.desc }
+          });
+        });
+        console.log('[LMP] Settings via SettingsApi OK');
+        return;
+      } catch(e) { console.log('[LMP] SettingsApi err:', e); }
+    }
+
+    // Метод 2: Lampa.Settings (старые сборки)
+    if (Lampa && Lampa.Settings && typeof Lampa.Settings.listener === 'object') {
+      try {
+        Lampa.Settings.listener.follow('open', function(e) {
+          if (e.name !== 'general') return;
+          LMP_SETTINGS.forEach(function(s) {
+            Lampa.Settings.input({
+              name: s.name,
+              label: s.label,
+              type: s.type,
+              values: s.values,
+              default: s.default,
+              onChange: function() {}
+            });
+          });
+        });
+        console.log('[LMP] Settings via Settings.listener OK');
+      } catch(e) { console.log('[LMP] Settings.listener err:', e); }
     }
   }
 
