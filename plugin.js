@@ -8,19 +8,18 @@
   // ─── CSS ──────────────────────────────────────────────────
   var CSS = [
     '@keyframes fadeUp{0%{opacity:0;transform:translateY(14px)}100%{opacity:1;transform:translateY(0)}}',
-    '.lmp-wrap{display:flex;flex-direction:row;align-items:flex-start;width:100%;height:100%;background:radial-gradient(circle at 20% 10%,rgba(60,85,130,.28),transparent 34%),radial-gradient(circle at 80% 20%,rgba(90,55,120,.20),transparent 32%),linear-gradient(135deg,#070a12 0%,#101522 48%,#06070d 100%);font-family:Inter,sans-serif;overflow-x:hidden;overflow-y:auto;scroll-behavior:smooth}',
-    '.lmp-main{flex:1;min-width:0;position:relative;z-index:1}',
-    // NAV — left vertical sidebar
-    '.lmp-nav{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:36px 0 24px;width:190px;flex-shrink:0;position:sticky;top:0;height:100vh;z-index:50;background:transparent;overflow:hidden}',
-    '.lmp-nav__logo{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);padding:0 28px;margin-bottom:16px}',
-    '.lmp-nav__btn{background:none;border:none;color:#666;font-family:inherit;font-size:18px;font-weight:600;padding:10px 28px;width:100%;text-align:left;border-radius:0;cursor:pointer;transition:color .22s ease-out,background .22s ease-out;white-space:nowrap;pointer-events:auto;letter-spacing:.01em}',
-    '.lmp-nav__btn:hover,.lmp-nav__btn.active,.lmp-nav__btn.nav-focused{color:#fff;background:rgba(255,255,255,.06)}',
-    '.lmp-nav__btn.active{color:#e94560}',
-    '.lmp-nav__btn.nav-focused{color:#fff;background:rgba(255,255,255,.09)}',
-    '.lmp-nav__sep{width:60%;height:1px;background:rgba(255,255,255,.06);margin:8px 28px}',
-    // Section "show all"
-    '.lmp-section__all{background:none;border:none;color:#555;font-size:14px;font-weight:600;cursor:pointer;padding:2px 6px;transition:color .2s;white-space:nowrap}',
-    '.lmp-section__all:hover{color:#e94560}',
+    '.lmp-wrap{position:relative;width:100%;height:100%;background:radial-gradient(circle at 20% 10%,rgba(60,85,130,.28),transparent 34%),radial-gradient(circle at 80% 20%,rgba(90,55,120,.20),transparent 32%),linear-gradient(135deg,#070a12 0%,#101522 48%,#06070d 100%);font-family:Inter,sans-serif;overflow-x:hidden;overflow-y:auto;scroll-behavior:smooth}',
+    '.lmp-inner{position:relative;z-index:1}',
+    // NAV — horizontal top bar
+    '.lmp-nav{display:flex;align-items:center;gap:4px;padding:10px 20px;position:sticky;top:0;z-index:50;background:transparent}',
+    '.lmp-nav__btn{background:none;border:none;color:#777;font-family:inherit;font-size:22px;font-weight:700;padding:10px 18px;border-radius:6px;cursor:pointer;transition:color .22s ease-out;white-space:nowrap;pointer-events:auto;letter-spacing:.01em}',
+    '.lmp-nav__btn:hover,.lmp-nav__btn.active,.lmp-nav__btn.nav-focused{color:#fff}',
+    '.lmp-nav__btn.active{color:#fff}',
+    '.lmp-nav__btn.nav-focused{color:#fff}',
+    // show-all card
+    '.lmp-card--all .lmp-card__poster{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}',
+    '.lmp-card--all .lmp-all-label{color:#888;font-size:16px;font-weight:600;text-align:center;line-height:1.4}',
+    '.lmp-card--all.focused .lmp-all-label{color:#fff}',
     // HERO
     '.lmp-hero{position:relative;height:58vh;min-height:340px;overflow:hidden}',
     '.lmp-hero__track{display:flex;height:100%;transition:transform .55s ease-out}',
@@ -98,20 +97,16 @@
   function buildSection(title, items, listUrl) {
     var s = document.createElement('div');
     s.className = 'lmp-section';
-    var allBtn = listUrl
-      ? '<button class="lmp-section__all" data-url="' + listUrl + '">Все ›</button>'
+    // Карточка "Все ›" добавляется в конец ряда (TV-навигация)
+    var allCard = listUrl
+      ? '<div class="lmp-card lmp-card--all"><div class="lmp-card__poster"><div class="lmp-all-label">Все<br>›</div></div></div>'
       : '';
     s.innerHTML =
-      '<div class="lmp-section__head"><h2 class="lmp-section__title">' + title + '</h2>' + allBtn + '</div>' +
+      '<div class="lmp-section__head"><h2 class="lmp-section__title">' + title + '</h2></div>' +
       '<div class="lmp-cards-wrap"><div class="lmp-cards">' +
         items.slice(0, 10).map(buildCardHTML).join('') +
+        allCard +
       '</div></div>';
-    if (listUrl) {
-      var btn = s.querySelector('.lmp-section__all');
-      if (btn) btn.addEventListener('click', function() {
-        Lampa.Activity.push({url: listUrl, title: title, component: 'catalog'});
-      });
-    }
     return s;
   }
 
@@ -385,14 +380,13 @@
       html = document.createElement('div');
       html.className = 'lmp-wrap';
 
-      // ─── Left sidebar nav ────────────────────────────────────
+      var inner = document.createElement('div');
+      inner.className = 'lmp-inner';
+      html.appendChild(inner);
+
+      // ─── Nav bar (horizontal top) ─────────────────────────────
       var navEl = document.createElement('nav');
       navEl.className = 'lmp-nav';
-
-      var logo = document.createElement('div');
-      logo.className = 'lmp-nav__logo';
-      logo.textContent = 'My TV';
-      navEl.appendChild(logo);
 
       var NAV_TABS = [
         {id:'main',     label:'Главная',     heroUrl:'trending/all/week',               listUrls:['movie/popular','tv/popular','movie/top_rated']},
@@ -401,13 +395,7 @@
         {id:'cartoons', label:'Мультфильмы', heroUrl:'discover/movie?with_genres=16',   listUrls:['discover/movie?with_genres=16','discover/movie?with_genres=10751','discover/tv?with_genres=16']},
         {id:'anime',    label:'Аниме',       heroUrl:'discover/tv?with_genres=16&with_original_language=ja', listUrls:['discover/tv?with_genres=16&with_original_language=ja','discover/movie?with_genres=16&with_original_language=ja','discover/tv?with_genres=16']},
       ];
-
-      // Разделитель перед закладками
-      var sep = document.createElement('div');
-      sep.className = 'lmp-nav__sep';
-
       var BOOKMARK_TAB = {id:'bookmarks', label:'Закладки', heroUrl:null, listUrls:[]};
-
       var activeTab = NAV_TABS[0];
       var navBtns = [];
 
@@ -438,9 +426,6 @@
         navBtns.push(btn);
         navEl.appendChild(btn);
       });
-
-      navEl.appendChild(sep);
-
       // Закладки
       var bmBtn = document.createElement('button');
       bmBtn.className = 'lmp-nav__btn';
@@ -449,25 +434,20 @@
       navBtns.push(bmBtn);
       navEl.appendChild(bmBtn);
 
-      html.appendChild(navEl);
+      inner.appendChild(navEl);
       _navBtns = navBtns;
-
-      // ─── Main content area ───────────────────────────────────
-      var main = document.createElement('div');
-      main.className = 'lmp-main';
-      html.appendChild(main);
 
       // ─── Hero ───────────────────────────────────────────────
       var heroEl = document.createElement('div');
       heroEl.className = 'lmp-hero';
       heroEl.innerHTML = '<div class="lmp-hero__track"></div><div class="lmp-hero__ctrls"></div>';
-      main.appendChild(heroEl);
+      inner.appendChild(heroEl);
 
       // ─── Content ────────────────────────────────────────────
       var content = document.createElement('div');
       content.className = 'lmp-content';
       content.innerHTML = '<div class="lmp-empty">Загрузка...</div>';
-      main.appendChild(content);
+      inner.appendChild(content);
 
       // Load real data from Lampa/TMDB
       loadRealData(content, heroEl, activeTab,
@@ -556,7 +536,11 @@
             if (m && m.id) openMovie(m);
           } else {
             var item = rows[rowIdx].items[colIdx];
-            if (item && item.id) openMovie(item);
+            if (item && item._all) {
+              Lampa.Activity.push({url: item._url, title: item._title, component: 'catalog'});
+            } else if (item && item.id) {
+              openMovie(item);
+            }
           }
         },
         back: function() {
@@ -583,21 +567,23 @@
     };
 
     // Find and hide Lampa's header title, inject our nav into header bar
-    var _headHidden = false;
+    var _styleEl = null;
     function hideHeader() {
-      var headEl = document.querySelector('.head');
-      if (headEl && !_headHidden) {
-        headEl.setAttribute('data-lmp-display', headEl.style.display || '');
-        headEl.style.display = 'none';
-        _headHidden = true;
+      if (!_styleEl) {
+        _styleEl = document.createElement('style');
+        _styleEl.id = 'lmp-head-override';
+        // Скрываем шапку Lampa и приводим фон приложения к нашему градиенту
+        _styleEl.textContent = [
+          '.head{display:none!important}',
+          'body,.app,.layer{background:#070a12!important}'
+        ].join('');
+        document.head.appendChild(_styleEl);
       }
     }
     function showHeader() {
-      var headEl = document.querySelector('.head');
-      if (headEl && _headHidden) {
-        headEl.style.display = headEl.getAttribute('data-lmp-display') || '';
-        headEl.removeAttribute('data-lmp-display');
-        _headHidden = false;
+      if (_styleEl) {
+        _styleEl.remove();
+        _styleEl = null;
       }
     }
 
@@ -747,12 +733,18 @@
             c.classList.remove('focused');
           });
         });
-        newRows.push({cards:Array.from(cards), items:items, head:head});
+        // items с sentinel-объектом для карточки "Все ›"
+        var rowItems = items.slice(0, 10).concat(url ? [{_all:true, _url:url, _title:TITLES[i]||'Все'}] : []);
+        newRows.push({cards:Array.from(cards), items:rowItems, head:head});
         // Click handlers
         cards.forEach(function(c, j) {
           c.addEventListener('click', function() {
-            var item = items[j];
-            if (item && item.id) openMovie(item);
+            var item = rowItems[j];
+            if (item && item._all) {
+              Lampa.Activity.push({url: item._url, title: item._title, component: 'catalog'});
+            } else if (item && item.id) {
+              openMovie(item);
+            }
           });
         });
       });
