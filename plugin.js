@@ -8,12 +8,10 @@
   // ─── CSS ──────────────────────────────────────────────────
   var CSS = [
     '@keyframes springUp{0%{opacity:0;transform:translateY(22px) scale(.95)}55%{opacity:1;transform:translateY(-5px) scale(1.02)}75%{transform:translateY(2px)}100%{transform:translateY(0) scale(1)}}',
-    '@keyframes kenBurns{0%{transform:scale(1)}50%{transform:scale(1.06) translate(-1%,.5%)}100%{transform:scale(1.04) translate(.8%,-.6%)}}',
-    '.lmp-wrap{position:relative;width:100%;height:100%;background:#111119;font-family:Inter,sans-serif;overflow-x:hidden;overflow-y:auto}',
-    '#lmp-bg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55}',
+    '.lmp-wrap{position:relative;width:100%;height:100%;background:radial-gradient(circle at 20% 10%,rgba(60,85,130,.28),transparent 34%),radial-gradient(circle at 80% 20%,rgba(90,55,120,.20),transparent 32%),linear-gradient(135deg,#070a12 0%,#101522 48%,#06070d 100%);font-family:Inter,sans-serif;overflow-x:hidden;overflow-y:auto}',
     '.lmp-inner{position:relative;z-index:1}',
     // NAV
-    '.lmp-nav{display:flex;align-items:center;gap:2px;padding:8px 20px;position:sticky;top:0;z-index:50;background:rgba(10,10,20,.9);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.05)}',
+    '.lmp-nav{display:flex;align-items:center;gap:2px;padding:8px 20px;position:sticky;top:0;z-index:50;background:rgba(10,10,20,.85);border-bottom:1px solid rgba(255,255,255,.05)}',
     '.lmp-nav__btn{background:none;border:none;color:#bbb;font-family:inherit;font-size:22px;font-weight:700;padding:0 18px;height:100%;border-radius:6px;cursor:pointer;transition:color .2s,background .2s,transform .18s cubic-bezier(.34,1.56,.64,1);position:relative;white-space:nowrap;pointer-events:auto;letter-spacing:.01em}',
     '.lmp-nav__btn:hover{color:#fff;background:rgba(255,255,255,.13);transform:scale(1.07)}',
     '.lmp-nav__btn.active{color:#fff}',
@@ -23,8 +21,8 @@
     '.lmp-hero__track{display:flex;height:100%;transition:transform .6s cubic-bezier(.4,0,.2,1)}',
     '.lmp-hcard{flex-shrink:0;width:46%;min-width:360px;height:100%;padding:12px 8px 12px 20px;cursor:pointer}',
     '.lmp-hcard__inner{width:100%;height:100%;border-radius:14px;overflow:hidden;position:relative;transition:transform .35s,box-shadow .35s}',
-    '.lmp-hcard.focused .lmp-hcard__inner{transform:scale(1.025);box-shadow:0 16px 48px rgba(0,0,0,.8);outline:2px solid rgba(255,255,255,.4)}',
-    '.lmp-hcard__bg{width:100%;height:100%;object-fit:cover;display:block;animation:kenBurns 14s ease-in-out infinite alternate}',
+    '.lmp-hcard.focused .lmp-hcard__inner{transform:scale(1.03);box-shadow:0 12px 32px rgba(0,0,0,.7);outline:2px solid rgba(255,255,255,.35)}',
+    '.lmp-hcard__bg{width:100%;height:100%;object-fit:cover;display:block}',
     '.lmp-hcard__overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.9) 0%,rgba(0,0,0,.1) 55%,transparent 80%);display:flex;flex-direction:column;justify-content:flex-end;padding:18px 20px}',
     '.lmp-hcard__title{font-size:20px;font-weight:700;color:#fff;line-height:1.2;text-shadow:0 2px 10px rgba(0,0,0,.7)}',
     '.lmp-hcard__desc{font-size:12px;color:#bbb;margin-top:4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
@@ -52,9 +50,9 @@
     '.lmp-card{flex-shrink:0;width:140px;cursor:pointer;position:relative;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}',
     '.lmp-card.focused{transform:scale(1.07) translateY(-3px)}',
     '.lmp-card__poster{position:relative;width:140px;height:204px;border-radius:8px;overflow:hidden;background:#1e1e2e;transition:box-shadow .3s}',
-    '.lmp-card.focused .lmp-card__poster{box-shadow:0 12px 36px rgba(0,0,0,.85),0 0 0 2px rgba(233,69,96,.65)}',
-    '.lmp-card__poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;pointer-events:none}',
-    '.lmp-card.focused .lmp-card__poster img{transform:scale(1.1)}',
+    '.lmp-card.focused .lmp-card__poster{box-shadow:0 8px 24px rgba(0,0,0,.7),0 0 0 2px rgba(233,69,96,.6)}',
+    '.lmp-card__poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s;pointer-events:none}',
+    '.lmp-card.focused .lmp-card__poster img{transform:scale(1.07)}',
     '.lmp-card__title{margin-top:6px;font-size:13px;font-weight:500;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;pointer-events:none;color:#bbb;transition:color .2s}',
     '.lmp-card.focused .lmp-card__title{color:#fff}',
     '.lmp-card__ratings{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 4px 5px;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent);pointer-events:none}',
@@ -75,57 +73,6 @@
 
   var QLABEL = {'4K':'4K','2K':'2K','1080p':'FHD','720p':'HD','480p':'SD','TS':'TS'};
 
-  // ─── Dynamic background ───────────────────────────────────
-  function BgManager(canvas) {
-    var ctx = canvas.getContext('2d');
-    var blobs = [], target = [], current = [], lerp = 1;
-
-    function hexToRgb(h) {
-      return {r:parseInt(h.slice(1,3),16), g:parseInt(h.slice(3,5),16), b:parseInt(h.slice(5,7),16)};
-    }
-
-    function resize() {
-      canvas.width  = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener('resize', resize);
-
-    this.set = function(colors) {
-      if (!colors || !colors.length) return;
-      target = colors.map(hexToRgb);
-      if (!blobs.length) {
-        blobs = target.map(function(rgb, i) {
-          return {x: canvas.width*(0.2+i*0.3), y: canvas.height*(0.3+i*0.2),
-            vx:(Math.random()-.5)*.4, vy:(Math.random()-.5)*.3,
-            r:Math.min(canvas.width,canvas.height)*(0.45+i*0.1), rgb:rgb};
-        });
-        current = blobs.map(function(b){ return {r:b.rgb.r,g:b.rgb.g,b:b.rgb.b}; });
-      }
-      lerp = 0;
-    };
-
-    this.draw = function() {
-      var W = canvas.width, H = canvas.height;
-      ctx.fillStyle = '#0e0e18';
-      ctx.fillRect(0, 0, W, H);
-      lerp = Math.min(lerp + 0.014, 1);
-      blobs.forEach(function(b, i) {
-        var t = lerp, c = current[i]||b.rgb, tg = target[i]||b.rgb;
-        var col = {r:Math.round(c.r+(tg.r-c.r)*t), g:Math.round(c.g+(tg.g-c.g)*t), b:Math.round(c.b+(tg.b-c.b)*t)};
-        var gr = ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
-        gr.addColorStop(0,'rgba('+col.r+','+col.g+','+col.b+',.55)');
-        gr.addColorStop(1,'rgba('+col.r+','+col.g+','+col.b+',0)');
-        ctx.fillStyle = gr; ctx.fillRect(0,0,W,H);
-        b.x+=b.vx; b.y+=b.vy;
-        if(b.x<-b.r||b.x>W+b.r) b.vx*=-1;
-        if(b.y<-b.r||b.y>H+b.r) b.vy*=-1;
-      });
-      var vig = ctx.createRadialGradient(W/2,H/2,H*.2,W/2,H/2,H*.9);
-      vig.addColorStop(0,'rgba(0,0,0,0)'); vig.addColorStop(1,'rgba(0,0,0,.7)');
-      ctx.fillStyle=vig; ctx.fillRect(0,0,W,H);
-    };
-  }
 
   // ─── Card HTML builder ────────────────────────────────────
   function buildCardHTML(m) {
@@ -158,7 +105,7 @@
   }
 
   // ─── Hero builder (infinite circular carousel) ───────────────
-  function buildHero(items, wrap, bg) {
+  function buildHero(items, wrap) {
     var track = wrap.querySelector('.lmp-hero__track');
     var ctrls = wrap.querySelector('.lmp-hero__ctrls');
 
@@ -232,7 +179,6 @@
       var hcards = track.querySelectorAll('.lmp-hcard');
       hcards.forEach(function(el){ el.classList.remove('focused'); });
       if (hcards[idx]) hcards[idx].classList.add('focused');
-      if (items[ri] && items[ri].colors) bg.set(items[ri].colors);
     }
 
     function goTo(virtIdx) {
@@ -280,11 +226,8 @@
           goTo(i);
         }
       });
-      // Mouse hover → .focused + цвета фона (по id)
+      // Mouse hover → .focused
       el.addEventListener('mouseenter', function() {
-        var m = extended[i];
-        if (!m) return;
-        bg.set(m.colors);
         track.querySelectorAll('.lmp-hcard').forEach(function(c){ c.classList.remove('focused'); });
         el.classList.add('focused');
       });
@@ -315,7 +258,7 @@
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onVisible);
 
-    var timer = setInterval(function() { goTo(cur + 1); }, 5000);
+    var timer = setInterval(function() { goTo(cur + 1); }, 9000);
 
     return {
       goTo:    function(i) { goTo(CLONE + i); },
@@ -326,7 +269,7 @@
       resume:  function() {
         jumping = false;
         jumpTo(cur);
-        timer = setInterval(function() { goTo(cur + 1); }, 5000);
+        timer = setInterval(function() { goTo(cur + 1); }, 9000);
       },
       stop: function() {
         clearInterval(timer);
@@ -338,7 +281,7 @@
 
   // ─── Main Component ───────────────────────────────────────
   function CustomHome() {
-    var html, canvas, bg, hero;
+    var html, hero;
     var rows = [];      // [{cards:NodeList, items:[]}]
     var rowIdx = 0;
     var colIdx = 0;
@@ -356,14 +299,12 @@
       var card = row.cards[cIdx];
       if (!card) return;
       card.classList.add('focused');
-      card.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});
+      card.scrollIntoView({block:'nearest',inline:'center'});
       // Scroll section title into view for vertical navigation
       if (html) {
         var offset = row.head.offsetTop - 60;
         html.scrollTop = offset;
       }
-      var m = row.items[cIdx];
-      if (m && m.colors) bg.set(m.colors);
     }
 
     function setMode(m) {
@@ -374,13 +315,6 @@
     this.create = function() {
       html = document.createElement('div');
       html.className = 'lmp-wrap';
-
-      // BG canvas
-      canvas = document.createElement('canvas');
-      canvas.id = 'lmp-bg';
-      html.appendChild(canvas);
-      bg = new BgManager(canvas);
-      bg.set(['#1a1a3e','#2d0a3e','#0a1a2e']);
 
       var inner = document.createElement('div');
       inner.className = 'lmp-inner';
@@ -413,7 +347,7 @@
           // Reload content
           content.innerHTML = '<div class="lmp-empty">Загрузка...</div>';
           rows = [];
-          loadRealData(content, heroEl, bg, tab,
+          loadRealData(content, heroEl, tab,
             function(newHero) { hero = newHero; },
             function(newRows) { rows = newRows; }
           );
@@ -441,11 +375,8 @@
       content.innerHTML = '<div class="lmp-empty">Загрузка...</div>';
       inner.appendChild(content);
 
-      // BG animation loop
-      (function loop(){ bg.draw(); requestAnimationFrame(loop); })();
-
       // Load real data from Lampa/TMDB
-      loadRealData(content, heroEl, bg, activeTab,
+      loadRealData(content, heroEl, activeTab,
         function(newHero) { hero = newHero; },
         function(newRows) { rows = newRows; }
       );
@@ -659,8 +590,8 @@
       quality: '',
       desc:   item.overview || '',
       img:    item.poster_path   ? IMG+'w342'+item.poster_path   : 'https://picsum.photos/seed/p'+item.id+'/300/450',
-      // Hero использует original для максимального качества
-      imgH:   item.backdrop_path ? IMG+'original'+item.backdrop_path : 'https://picsum.photos/seed/h'+item.id+'/1920/1080',
+      // Hero использует w1280 для баланса качества и производительности
+      imgH:   item.backdrop_path ? IMG+'w1280'+item.backdrop_path : 'https://picsum.photos/seed/h'+item.id+'/1280/720',
       colors: itemColors(item.id),
       method: item.media_type === 'tv' ? 'tv' : (item.first_air_date ? 'tv' : 'movie'),
       card:   item
@@ -695,7 +626,7 @@
   };
 
   // ─── Load real data via Lampa TMDB API ──────────────────────
-  function loadRealData(contentEl, heroWrap, bgInst, tab, setHero, setRows) {
+  function loadRealData(contentEl, heroWrap, tab, setHero, setRows) {
     var tabId    = (tab && tab.id) || 'main';
     var TITLES   = TAB_SECTIONS[tabId] || ['Популярное', 'Сейчас идут', 'Топ рейтинга'];
     var listUrls = (tab && tab.listUrls) || ['movie/popular'];
@@ -705,7 +636,7 @@
     function rebuild() {
       // Hero
       if (got._hero && got._hero.length) {
-        var newHero = buildHero(got._hero.slice(0, 8), heroWrap, bgInst);
+        var newHero = buildHero(got._hero.slice(0, 8), heroWrap);
         if (setHero) setHero(newHero);
       } else {
         var track = heroWrap.querySelector('.lmp-hero__track');
@@ -733,11 +664,8 @@
             c.style.opacity='';
             c.style.animation='springUp .5s cubic-bezier(.4,0,.2,1) '+(j*28)+'ms both';
           }, 50);
-          // Mouse hover → .focused + цвета фона (по id)
+          // Mouse hover → .focused
           c.addEventListener('mouseenter', function() {
-            var m = items[j];
-            if (!m) return;
-            bgInst.set(m.colors);
             newRows.forEach(function(r){ r.cards.forEach(function(x){ x.classList.remove('focused'); }); });
             c.classList.add('focused');
           });
