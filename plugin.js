@@ -14,7 +14,7 @@
     '.lmp-inner{position:relative;z-index:1}',
     // NAV
     '.lmp-nav{display:flex;align-items:center;gap:2px;padding:8px 20px;position:sticky;top:0;z-index:50;background:rgba(10,10,20,.9);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.05)}',
-    '.lmp-nav__btn{background:none;border:none;color:#bbb;font-family:inherit;font-size:15px;font-weight:500;padding:0 16px;height:100%;border-radius:6px;cursor:pointer;transition:color .2s,background .2s;position:relative;white-space:nowrap;pointer-events:auto}',
+    '.lmp-nav__btn{background:none;border:none;color:#bbb;font-family:inherit;font-size:18px;font-weight:600;padding:0 16px;height:100%;border-radius:6px;cursor:pointer;transition:color .2s,background .2s;position:relative;white-space:nowrap;pointer-events:auto;letter-spacing:.01em}',
     '.lmp-nav__btn:hover{color:#fff;background:rgba(255,255,255,.07)}',
     '.lmp-nav__btn.active{color:#fff}',
     '#lmp-nav-pill{position:absolute;bottom:0;height:2px;background:linear-gradient(90deg,#e94560,#ff8a80);border-radius:2px;transition:left .3s cubic-bezier(.4,0,.2,1),width .3s;pointer-events:none}',
@@ -50,15 +50,17 @@
     '.lmp-cards{display:flex;gap:12px;padding:8px 20px 10px;width:max-content}',
     // CARD
     '.lmp-card{flex-shrink:0;width:140px;cursor:pointer;position:relative}',
-    '.lmp-card__poster{position:relative;width:140px;height:204px;border-radius:8px;overflow:hidden;background:#1e1e2e;transition:transform .3s,box-shadow .3s}',
+    '.lmp-card__poster{position:relative;width:140px;height:204px;border-radius:8px;overflow:hidden;background:#1e1e2e;transition:transform .3s cubic-bezier(.4,0,.2,1),box-shadow .3s,outline .15s}',
     '.lmp-card.focused .lmp-card__poster{transform:scale(1.06) translateY(-4px);box-shadow:0 14px 36px rgba(0,0,0,.8);outline:2px solid rgba(255,255,255,.5)}',
     '.lmp-card__poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;pointer-events:none}',
     '.lmp-card.focused .lmp-card__poster img{transform:scale(1.08)}',
+    '.lmp-card__title{margin-top:6px;font-size:12px;font-weight:500;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;pointer-events:none;color:#bbb;transition:color .2s}',
+    '.lmp-card.focused .lmp-card__title{color:#fff}',
     '.lmp-card__ratings{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 3px 4px;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent);pointer-events:none}',
     '.lmp-crb{display:inline-flex;align-items:center;gap:2px;font-size:8.5px;font-weight:700;line-height:1;white-space:nowrap}',
     '.lmp-crb--imdb{color:#f5c518}.lmp-crb--kp{color:#ff6600}.lmp-crb--user{color:#63ca82}',
     '.lmp-crb--qual{color:#bbb;font-weight:800;letter-spacing:.5px}',
-    '.lmp-card__title{margin-top:6px;font-size:12px;font-weight:500;color:#bbb;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;pointer-events:none}',
+    /* lmp-card__title moved above with .focused variant */
     '.lmp-card__year{font-size:10px;color:#555;margin-top:2px;pointer-events:none}',
     '.lmp-empty{text-align:center;padding:60px 20px;color:#444;font-size:14px}'
   ].join('');
@@ -154,17 +156,24 @@
     return s;
   }
 
-  // ─── Hero builder ─────────────────────────────────────────
+  // ─── Hero builder (infinite circular carousel) ───────────────
   function buildHero(items, wrap, bg) {
     var track = wrap.querySelector('.lmp-hero__track');
     var ctrls = wrap.querySelector('.lmp-hero__ctrls');
-    var cur   = 0;
 
-    track.innerHTML = items.map(function(m) {
+    // Для бесконечной карусели клонируем N слайдов с каждой стороны
+    var CLONE = Math.min(2, items.length);
+    var real   = items.length;
+    // virtualIdx — индекс в расширенном массиве (клон-слева, реальные, клон-справа)
+    // realIdx(v) = v - CLONE
+    var cur    = CLONE; // начинаем с первого реального
+    var jumping = false;
+
+    function makeCard(m) {
       var q = QLABEL[m.quality] || m.quality || '';
       return '<div class="lmp-hcard">' +
         '<div class="lmp-hcard__inner">' +
-          '<img class="lmp-hcard__bg" src="' + m.img + '" alt="' + m.title + '">' +
+          '<img class="lmp-hcard__bg" src="' + m.imgH + '" alt="' + m.title + '">' +
           '<div class="lmp-hcard__overlay">' +
             '<div class="lmp-hcard__title">' + m.title + '</div>' +
             '<div class="lmp-hcard__desc">'  + (m.desc||'') + '</div>' +
@@ -178,25 +187,61 @@
           '</div>' +
         '</div>' +
       '</div>';
-    }).join('');
+    }
 
+    // Строим расширенный список: последние CLONE + все + первые CLONE
+    var extended = [];
+    for (var ci = real - CLONE; ci < real; ci++) extended.push(items[ci]);
+    for (var ri = 0; ri < real; ri++) extended.push(items[ri]);
+    for (var fi = 0; fi < CLONE; fi++) extended.push(items[fi]);
+    var total = extended.length;
+
+    track.innerHTML = extended.map(makeCard).join('');
+
+    // Dots — только реальные
     ctrls.innerHTML = items.map(function(_, i) {
       return '<button class="lmp-hdot' + (i===0?' active':'') + '"></button>';
     }).join('');
+    var dots = wrap.querySelectorAll('.lmp-hdot');
 
-    function goTo(idx) {
-      cur = Math.max(0, Math.min(idx, items.length-1));
+    function realIdx(v) { return ((v - CLONE) % real + real) % real; }
+
+    function moveTo(idx, animate) {
       var w = track.parentElement.offsetWidth * 0.46 + 14;
-      track.style.transform = 'translateX(-' + cur*w + 'px)';
-      wrap.querySelectorAll('.lmp-hdot').forEach(function(d,i){ d.classList.toggle('active',i===cur); });
-      var c = wrap.querySelectorAll('.lmp-hcard');
-      c.forEach(function(el){ el.classList.remove('focused'); });
-      if(c[cur]) c[cur].classList.add('focused');
-      if(items[cur] && items[cur].colors) bg.set(items[cur].colors);
+      if (!animate) track.style.transition = 'none';
+      else track.style.transition = 'transform .6s cubic-bezier(.4,0,.2,1)';
+      track.style.transform = 'translateX(-' + (idx * w) + 'px)';
+      var ri = realIdx(idx);
+      dots.forEach(function(d, i){ d.classList.toggle('active', i === ri); });
+      var cards = track.querySelectorAll('.lmp-hcard');
+      cards.forEach(function(el){ el.classList.remove('focused'); });
+      if (cards[idx]) cards[idx].classList.add('focused');
+      if (items[ri] && items[ri].colors) bg.set(items[ri].colors);
     }
 
-    // animate in
-    wrap.querySelectorAll('.lmp-hcard').forEach(function(el, i) {
+    function goTo(virtIdx) {
+      if (jumping) return;
+      cur = virtIdx;
+      moveTo(cur, true);
+
+      // После анимации — тихо перепрыгнуть на реальный индекс если вышли за края
+      setTimeout(function() {
+        var ri = realIdx(cur);
+        if (cur < CLONE || cur >= CLONE + real) {
+          jumping = true;
+          cur = CLONE + ri;
+          moveTo(cur, false);
+          // Форсируем reflow чтобы убрать transition перед след. кадром
+          void track.offsetWidth;
+          track.style.transition = 'transform .6s cubic-bezier(.4,0,.2,1)';
+          jumping = false;
+        }
+      }, 650);
+    }
+
+    // animate-in только реальные карточки
+    var realCards = Array.from(track.querySelectorAll('.lmp-hcard')).slice(CLONE, CLONE + real);
+    realCards.forEach(function(el, i) {
       el.style.opacity = '0'; el.style.animation = 'none';
       setTimeout(function() {
         el.style.opacity = '';
@@ -204,29 +249,34 @@
       }, 30);
     });
 
-    // Click handlers on hero cards
-    wrap.querySelectorAll('.lmp-hcard').forEach(function(el, i) {
+    // Click handlers
+    track.querySelectorAll('.lmp-hcard').forEach(function(el, i) {
       el.addEventListener('click', function() {
         if (cur === i) {
-          if (items[i] && items[i].id) openMovie(items[i]);
+          var m = extended[i];
+          if (m && m.id) openMovie(m);
         } else {
           goTo(i);
         }
       });
+      // mouseenter → фокус
+      el.addEventListener('mouseenter', function() {
+        var m = extended[i];
+        if (m && m.colors) bg.set(m.colors);
+      });
     });
 
-    // Click on dots
-    wrap.querySelectorAll('.lmp-hdot').forEach(function(d, i) {
-      d.addEventListener('click', function(e) { e.stopPropagation(); goTo(i); });
+    dots.forEach(function(d, i) {
+      d.addEventListener('click', function(e) { e.stopPropagation(); goTo(CLONE + i); });
     });
 
-    goTo(0);
-    var timer = setInterval(function(){ goTo(cur >= items.length-1 ? 0 : cur+1); }, 5000);
+    moveTo(cur, false);
+    var timer = setInterval(function() { goTo(cur + 1); }, 5000);
 
     return {
-      goTo: goTo,
-      getCur: function(){ return cur; },
-      getLen: function(){ return items.length; },
+      goTo: function(i) { goTo(CLONE + i); },
+      getCur: function(){ return realIdx(cur); },
+      getLen: function(){ return real; },
       getItem: function(i){ return items[i]; },
       stop: function(){ clearInterval(timer); }
     };
@@ -531,9 +581,10 @@
       quality: '',
       desc:   item.overview || '',
       img:    item.poster_path   ? IMG+'w342'+item.poster_path   : 'https://picsum.photos/seed/p'+item.id+'/300/450',
-      imgH:   item.backdrop_path ? IMG+'w1280'+item.backdrop_path : 'https://picsum.photos/seed/h'+item.id+'/900/520',
+      // Hero использует original для максимального качества
+      imgH:   item.backdrop_path ? IMG+'original'+item.backdrop_path : 'https://picsum.photos/seed/h'+item.id+'/1920/1080',
       colors: ['#1a1a3e','#2d0a3e','#0a1a2e'],
-      method: item.media_type === 'tv' ? 'tv' : 'movie',
+      method: item.media_type === 'tv' ? 'tv' : (item.first_air_date ? 'tv' : 'movie'),
       card:   item
     };
   }
@@ -556,11 +607,18 @@
     cb(null);
   }
 
-  // ─── Load real data via Lampa TMDB API ──────────────────────
+  // ─── Структура секций по вкладкам ────────────────────────────
+  var TAB_SECTIONS = {
+    main:     ['В тренде', 'Популярные фильмы', 'Популярные сериалы'],
+    movies:   ['Популярные', 'Сейчас в кино', 'Топ рейтинга'],
+    series:   ['Популярные сериалы', 'Сейчас в эфире', 'Топ рейтинга'],
+    cartoons: ['Популярные мультфильмы', 'Семейное', 'Для детей']
+  };
 
-  // Load real data, replace sections/hero when ready
+  // ─── Load real data via Lampa TMDB API ──────────────────────
   function loadRealData(contentEl, heroWrap, bgInst, tab, setHero, setRows) {
-    var TITLES = ['Популярное', 'Сейчас идут', 'Топ рейтинга'];
+    var tabId    = (tab && tab.id) || 'main';
+    var TITLES   = TAB_SECTIONS[tabId] || ['Популярное', 'Сейчас идут', 'Топ рейтинга'];
     var listUrls = (tab && tab.listUrls) || ['movie/popular'];
     var heroUrl  = (tab && tab.heroUrl)  || listUrls[0];
     var got = {}, done = 0, total = listUrls.length + 1;
@@ -568,7 +626,7 @@
     function rebuild() {
       // Hero
       if (got._hero && got._hero.length) {
-        var newHero = buildHero(got._hero.slice(0,6), heroWrap, bgInst);
+        var newHero = buildHero(got._hero.slice(0, 8), heroWrap, bgInst);
         if (setHero) setHero(newHero);
       } else {
         var track = heroWrap.querySelector('.lmp-hero__track');
@@ -590,12 +648,20 @@
         contentEl.appendChild(sec);
         var cards = sec.querySelectorAll('.lmp-card');
         var head  = sec.querySelector('.lmp-section__title');
-        cards.forEach(function(c,j){
+        cards.forEach(function(c, j) {
           c.style.opacity='0'; c.style.animation='none';
-          setTimeout(function(){ c.style.opacity=''; c.style.animation='springUp .5s cubic-bezier(.4,0,.2,1) '+(j*28)+'ms both'; },50);
+          setTimeout(function(){
+            c.style.opacity='';
+            c.style.animation='springUp .5s cubic-bezier(.4,0,.2,1) '+(j*28)+'ms both';
+          }, 50);
+          // mouseenter → фон по цветам карточки
+          c.addEventListener('mouseenter', function() {
+            var m = items[j];
+            if (m && m.colors) bgInst.set(m.colors);
+          });
         });
         newRows.push({cards:Array.from(cards), items:items, head:head});
-        // Add click handlers
+        // Click handlers
         cards.forEach(function(c, j) {
           c.addEventListener('click', function() {
             var item = items[j];
@@ -609,6 +675,56 @@
     function check() { if (++done >= total) rebuild(); }
     tmdbGet(heroUrl, function(r){ got._hero = r; check(); });
     listUrls.forEach(function(url,i){ tmdbGet(url, function(r){ got[i]=r; check(); }); });
+  }
+
+  // ─── Lampa Settings GUI ───────────────────────────────────
+  function registerSettings() {
+    if (!(Lampa && Lampa.SettingsApi && typeof Lampa.SettingsApi.addParam === 'function')) return;
+    try {
+      // Группа настроек плагина
+      Lampa.SettingsApi.addParam({
+        component: 'general',
+        param: {
+          name:  'lmp_hero_count',
+          type:  'select',
+          values: {4:'4',6:'6',8:'8',10:'10'},
+          default: '6'
+        },
+        field: {
+          name: 'Новый UI: кол-во карточек в Hero',
+          description: 'Сколько постеров показывать в карусели вверху'
+        }
+      });
+      Lampa.SettingsApi.addParam({
+        component: 'general',
+        param: {
+          name:  'lmp_content_lang',
+          type:  'select',
+          values: {ru:'Русский',en:'Английский'},
+          default: 'ru'
+        },
+        field: {
+          name: 'Новый UI: язык контента',
+          description: 'Язык названий фильмов и описаний'
+        }
+      });
+      Lampa.SettingsApi.addParam({
+        component: 'general',
+        param: {
+          name:  'lmp_image_quality',
+          type:  'select',
+          values: {original:'Оригинал (медленнее)',w1280:'1280px (быстрее)',w780:'780px (экономия)'},
+          default: 'original'
+        },
+        field: {
+          name: 'Новый UI: качество фото Hero',
+          description: 'Разрешение фоновых изображений в карусели'
+        }
+      });
+      console.log('[LMP] Settings registered via SettingsApi');
+    } catch(e) {
+      console.log('[LMP] SettingsApi error:', e);
+    }
   }
 
   // ─── Init ─────────────────────────────────────────────────
@@ -690,6 +806,7 @@
     document.head.appendChild(style);
 
     registerComponent();
+    registerSettings();
 
     // Попробовать сразу
     addMenu();
