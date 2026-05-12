@@ -287,7 +287,7 @@
     var rowIdx = 0;
     var colIdx = 0;
     var navIdx = 0;     // какая вкладка подсвечена в режиме nav
-    var mode   = 'hero'; // 'hero' | 'nav' | 'cards'
+    var mode   = 'nav'; // 'hero' | 'nav' | 'cards'  — стартуем с nav
     var _navBtns = []; // ссылка на кнопки (заполняется в create)
     var _navPill = null;
 
@@ -543,6 +543,9 @@
         }
       });
       Lampa.Controller.toggle('content');
+
+      // Начальный фокус на панели вкладок
+      focusNav(0);
 
       // Hide Lampa's own activity header bar
       hideHeader();
