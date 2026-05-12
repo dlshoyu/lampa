@@ -8,15 +8,19 @@
   // ─── CSS ──────────────────────────────────────────────────
   var CSS = [
     '@keyframes fadeUp{0%{opacity:0;transform:translateY(14px)}100%{opacity:1;transform:translateY(0)}}',
-    '.lmp-wrap{position:relative;width:100%;height:100%;background:radial-gradient(circle at 20% 10%,rgba(60,85,130,.28),transparent 34%),radial-gradient(circle at 80% 20%,rgba(90,55,120,.20),transparent 32%),linear-gradient(135deg,#070a12 0%,#101522 48%,#06070d 100%);font-family:Inter,sans-serif;overflow-x:hidden;overflow-y:auto;scroll-behavior:smooth}',
-    '.lmp-inner{position:relative;z-index:1}',
-    // NAV
-    '.lmp-nav{display:flex;align-items:center;gap:2px;padding:8px 20px;position:sticky;top:0;z-index:50;background:transparent;border-bottom:none}',
-    '.lmp-nav__btn{background:none;border:none;color:#888;font-family:inherit;font-size:22px;font-weight:700;padding:0 18px;height:100%;border-radius:6px;cursor:pointer;transition:color .25s ease-out;position:relative;white-space:nowrap;pointer-events:auto;letter-spacing:.01em}',
-    '.lmp-nav__btn:hover{color:#fff}',
-    '.lmp-nav__btn.active{color:#fff}',
-    '.lmp-nav__btn.nav-focused{color:#fff}',
-    '#lmp-nav-pill{position:absolute;bottom:-2px;height:2px;background:linear-gradient(90deg,#e94560,#ff8a80);border-radius:2px;transition:left .35s ease-out,width .35s ease-out;pointer-events:none}',
+    '.lmp-wrap{display:flex;flex-direction:row;align-items:flex-start;width:100%;height:100%;background:radial-gradient(circle at 20% 10%,rgba(60,85,130,.28),transparent 34%),radial-gradient(circle at 80% 20%,rgba(90,55,120,.20),transparent 32%),linear-gradient(135deg,#070a12 0%,#101522 48%,#06070d 100%);font-family:Inter,sans-serif;overflow-x:hidden;overflow-y:auto;scroll-behavior:smooth}',
+    '.lmp-main{flex:1;min-width:0;position:relative;z-index:1}',
+    // NAV — left vertical sidebar
+    '.lmp-nav{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:36px 0 24px;width:190px;flex-shrink:0;position:sticky;top:0;height:100vh;z-index:50;background:transparent;overflow:hidden}',
+    '.lmp-nav__logo{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.2);padding:0 28px;margin-bottom:16px}',
+    '.lmp-nav__btn{background:none;border:none;color:#666;font-family:inherit;font-size:18px;font-weight:600;padding:10px 28px;width:100%;text-align:left;border-radius:0;cursor:pointer;transition:color .22s ease-out,background .22s ease-out;white-space:nowrap;pointer-events:auto;letter-spacing:.01em}',
+    '.lmp-nav__btn:hover,.lmp-nav__btn.active,.lmp-nav__btn.nav-focused{color:#fff;background:rgba(255,255,255,.06)}',
+    '.lmp-nav__btn.active{color:#e94560}',
+    '.lmp-nav__btn.nav-focused{color:#fff;background:rgba(255,255,255,.09)}',
+    '.lmp-nav__sep{width:60%;height:1px;background:rgba(255,255,255,.06);margin:8px 28px}',
+    // Section "show all"
+    '.lmp-section__all{background:none;border:none;color:#555;font-size:14px;font-weight:600;cursor:pointer;padding:2px 6px;transition:color .2s;white-space:nowrap}',
+    '.lmp-section__all:hover{color:#e94560}',
     // HERO
     '.lmp-hero{position:relative;height:58vh;min-height:340px;overflow:hidden}',
     '.lmp-hero__track{display:flex;height:100%;transition:transform .55s ease-out}',
@@ -93,14 +97,23 @@
   }
 
   // ─── Section builder ──────────────────────────────────────
-  function buildSection(title, items) {
+  function buildSection(title, items, listUrl) {
     var s = document.createElement('div');
     s.className = 'lmp-section';
+    var allBtn = listUrl
+      ? '<button class="lmp-section__all" data-url="' + listUrl + '">Все ›</button>'
+      : '';
     s.innerHTML =
-      '<div class="lmp-section__head"><h2 class="lmp-section__title">' + title + '</h2></div>' +
+      '<div class="lmp-section__head"><h2 class="lmp-section__title">' + title + '</h2>' + allBtn + '</div>' +
       '<div class="lmp-cards-wrap"><div class="lmp-cards">' +
-        items.map(buildCardHTML).join('') +
+        items.slice(0, 10).map(buildCardHTML).join('') +
       '</div></div>';
+    if (listUrl) {
+      var btn = s.querySelector('.lmp-section__all');
+      if (btn) btn.addEventListener('click', function() {
+        Lampa.Activity.push({url: listUrl, title: title, component: 'catalog'});
+      });
+    }
     return s;
   }
 
@@ -374,67 +387,89 @@
       html = document.createElement('div');
       html.className = 'lmp-wrap';
 
-      var inner = document.createElement('div');
-      inner.className = 'lmp-inner';
-      html.appendChild(inner);
-
-      // ─── Nav bar ────────────────────────────────────────────
+      // ─── Left sidebar nav ────────────────────────────────────
       var navEl = document.createElement('nav');
       navEl.className = 'lmp-nav';
-      var pill = document.createElement('div');
-      pill.id = 'lmp-nav-pill';
+
+      var logo = document.createElement('div');
+      logo.className = 'lmp-nav__logo';
+      logo.textContent = 'My TV';
+      navEl.appendChild(logo);
+
       var NAV_TABS = [
-        {id:'main',     label:'Главная',     heroUrl:'trending/all/week',            listUrls:['movie/popular','tv/popular','movie/top_rated']},
-        {id:'movies',   label:'Фильмы',      heroUrl:'movie/popular',                listUrls:['movie/popular','movie/now_playing','movie/top_rated']},
-        {id:'series',   label:'Сериалы',     heroUrl:'tv/popular',                   listUrls:['tv/popular','tv/on_the_air','tv/top_rated']},
-        {id:'cartoons', label:'Мультфильмы', heroUrl:'discover/movie?with_genres=16',  listUrls:['discover/movie?with_genres=16','discover/movie?with_genres=10751','discover/tv?with_genres=16']},
+        {id:'main',     label:'Главная',     heroUrl:'trending/all/week',               listUrls:['movie/popular','tv/popular','movie/top_rated']},
+        {id:'movies',   label:'Фильмы',      heroUrl:'movie/popular',                   listUrls:['movie/popular','movie/now_playing','movie/top_rated']},
+        {id:'series',   label:'Сериалы',     heroUrl:'tv/popular',                      listUrls:['tv/popular','tv/on_the_air','tv/top_rated']},
+        {id:'cartoons', label:'Мультфильмы', heroUrl:'discover/movie?with_genres=16',   listUrls:['discover/movie?with_genres=16','discover/movie?with_genres=10751','discover/tv?with_genres=16']},
+        {id:'anime',    label:'Аниме',       heroUrl:'discover/tv?with_genres=16&with_original_language=ja', listUrls:['discover/tv?with_genres=16&with_original_language=ja','discover/movie?with_genres=16&with_original_language=ja','discover/tv?with_genres=16']},
       ];
+
+      // Разделитель перед закладками
+      var sep = document.createElement('div');
+      sep.className = 'lmp-nav__sep';
+
+      var BOOKMARK_TAB = {id:'bookmarks', label:'Закладки', heroUrl:null, listUrls:[]};
+
       var activeTab = NAV_TABS[0];
       var navBtns = [];
+
+      function switchTab(tab, btn) {
+        navBtns.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        activeTab = tab;
+        if (tab.id === 'bookmarks') {
+          Lampa.Activity.push({url:'', title:'Закладки', component:'bookmarks'});
+          return;
+        }
+        content.innerHTML = '<div class="lmp-empty">Загрузка...</div>';
+        rows = [];
+        if (hero) { hero.stop(); hero = null; }
+        heroEl.querySelector('.lmp-hero__track').innerHTML = '';
+        heroEl.querySelector('.lmp-hero__ctrls').innerHTML = '';
+        loadRealData(content, heroEl, tab,
+          function(newHero) { hero = newHero; },
+          function(newRows) { rows = newRows; }
+        );
+      }
+
       NAV_TABS.forEach(function(tab, i) {
         var btn = document.createElement('button');
         btn.className = 'lmp-nav__btn' + (i === 0 ? ' active' : '');
         btn.textContent = tab.label;
-        btn.addEventListener('click', function() {
-          navBtns.forEach(function(b){ b.classList.remove('active'); });
-          btn.classList.add('active');
-          // Move pill
-          pill.style.left  = btn.offsetLeft + 'px';
-          pill.style.width = btn.offsetWidth + 'px';
-          activeTab = tab;
-          // Reload content
-          content.innerHTML = '<div class="lmp-empty">Загрузка...</div>';
-          rows = [];
-          loadRealData(content, heroEl, tab,
-            function(newHero) { hero = newHero; },
-            function(newRows) { rows = newRows; }
-          );
-        });
+        btn.addEventListener('click', function() { switchTab(tab, btn); });
         navBtns.push(btn);
         navEl.appendChild(btn);
       });
-      navEl.appendChild(pill);
-      inner.appendChild(navEl);
-      // Сохраняем ссылки для TV-навигации
+
+      navEl.appendChild(sep);
+
+      // Закладки
+      var bmBtn = document.createElement('button');
+      bmBtn.className = 'lmp-nav__btn';
+      bmBtn.textContent = BOOKMARK_TAB.label;
+      bmBtn.addEventListener('click', function() { switchTab(BOOKMARK_TAB, bmBtn); });
+      navBtns.push(bmBtn);
+      navEl.appendChild(bmBtn);
+
+      html.appendChild(navEl);
       _navBtns = navBtns;
-      _navPill  = pill;
-      // Init pill position
-      requestAnimationFrame(function(){
-        var first = navBtns[0];
-        if(first){ pill.style.left=first.offsetLeft+'px'; pill.style.width=first.offsetWidth+'px'; }
-      });
+
+      // ─── Main content area ───────────────────────────────────
+      var main = document.createElement('div');
+      main.className = 'lmp-main';
+      html.appendChild(main);
 
       // ─── Hero ───────────────────────────────────────────────
       var heroEl = document.createElement('div');
       heroEl.className = 'lmp-hero';
       heroEl.innerHTML = '<div class="lmp-hero__track"></div><div class="lmp-hero__ctrls"></div>';
-      inner.appendChild(heroEl);
+      main.appendChild(heroEl);
 
       // ─── Content ────────────────────────────────────────────
       var content = document.createElement('div');
       content.className = 'lmp-content';
       content.innerHTML = '<div class="lmp-empty">Загрузка...</div>';
-      inner.appendChild(content);
+      main.appendChild(content);
 
       // Load real data from Lampa/TMDB
       loadRealData(content, heroEl, activeTab,
@@ -552,82 +587,26 @@
     };
 
     // Find and hide Lampa's header title, inject our nav into header bar
-    var _hiddenEls = [];
-    var _injectedNav = null;
+    var _headHidden = false;
     function hideHeader() {
-      // Hide the title/logo elements in Lampa's header
-      var selectors = ['.head__title', '.head__logo', '.head__logo-text'];
-      selectors.forEach(function(sel) {
-        document.querySelectorAll(sel).forEach(function(el) {
-          if (el.getAttribute('data-lmp-hidden') === null) {
-            el.setAttribute('data-lmp-hidden', el.style.visibility || '');
-            el.style.visibility = 'hidden';
-            _hiddenEls.push(el);
-          }
-        });
-      });
-
       var headEl = document.querySelector('.head');
-      var navEl  = html && html.querySelector('.lmp-nav');
-      if (headEl && navEl && !_injectedNav) {
-        var headH = headEl.offsetHeight || 52;
-        // pointer-events:none on wrapper — only buttons capture clicks
-        navEl.style.cssText = [
-          'position:fixed',
-          'top:0',
-          'left:140px',
-          'right:0',
-          'height:' + headH + 'px',
-          'padding:0 4px',
-          'background:transparent',
-          'backdrop-filter:none',
-          'border-bottom:none',
-          'z-index:9999',
-          'pointer-events:none',
-          'display:flex',
-          'align-items:center'
-        ].join(';');
-        document.body.appendChild(navEl);
-        _injectedNav = navEl;
-        // Refine left boundary after layout
-        setTimeout(function() {
-          if (!_injectedNav) return;
-          var leftEdge = 0;
-          // Scan ALL elements inside head to find rightmost left-side element
-          headEl.querySelectorAll('*').forEach(function(el) {
-            if (navEl.contains(el)) return;
-            var r = el.getBoundingClientRect();
-            // Skip zero-size, very wide containers, and right-half elements
-            if (!r.width || !r.height) return;
-            if (r.width > window.innerWidth * 0.3) return;
-            var midX = r.left + r.width / 2;
-            if (midX < window.innerWidth / 2) {
-              leftEdge = Math.max(leftEdge, r.right);
-            }
-          });
-          // Ensure minimum clearance
-          leftEdge = Math.max(leftEdge + 12, 120);
-          navEl.style.left = leftEdge + 'px';
-        }, 300);
+      if (headEl && !_headHidden) {
+        headEl.setAttribute('data-lmp-display', headEl.style.display || '');
+        headEl.style.display = 'none';
+        _headHidden = true;
       }
     }
     function showHeader() {
-      _hiddenEls.forEach(function(el) {
-        el.style.visibility = el.getAttribute('data-lmp-hidden') || '';
-        el.removeAttribute('data-lmp-hidden');
-      });
-      _hiddenEls = [];
-      if (_injectedNav) {
-        // Move nav back into plugin container
-        var inner = html && html.querySelector('.lmp-inner');
-        if (inner) inner.insertBefore(_injectedNav, inner.firstChild);
-        _injectedNav.style.cssText = '';
-        _injectedNav = null;
+      var headEl = document.querySelector('.head');
+      if (headEl && _headHidden) {
+        headEl.style.display = headEl.getAttribute('data-lmp-display') || '';
+        headEl.removeAttribute('data-lmp-display');
+        _headHidden = false;
       }
     }
 
     this.pause  = function() { showHeader(); if (hero) hero.pause(); };
-    this.resume = function() { Lampa.Controller.toggle('content'); hideHeader(); if (hero) hero.resume(); };
+    this.resume = function() { Lampa.Controller.toggle('content'); hideHeader(); if (hero) hero.resume(); focusNav(navIdx); };
     this.destroy = function() {
       showHeader();
       if (hero) hero.stop();
@@ -716,11 +695,12 @@
 
   // ─── Структура секций по вкладкам ────────────────────────────
   var TAB_SECTIONS = {
-    // Заголовки должны точно соответствовать порядку listUrls в NAV_TABS!
-    main:     ['Популярные фильмы', 'Популярные сериалы', 'Топ рейтинга'],   // movie/popular, tv/popular, movie/top_rated
-    movies:   ['Популярные', 'Сейчас в кино', 'Топ рейтинга'],            // movie/popular, movie/now_playing, movie/top_rated
-    series:   ['Популярные сериалы', 'Сейчас в эфире', 'Топ рейтинга'],    // tv/popular, tv/on_the_air, tv/top_rated
-    cartoons: ['Популярные мультфильмы', 'Семейное кино', 'Мультсериалы'] // genre 16, genre 10751(Family), tv genre 16
+    main:     ['Популярные фильмы', 'Популярные сериалы', 'Топ рейтинга'],
+    movies:   ['Популярные', 'Сейчас в кино', 'Топ рейтинга'],
+    series:   ['Популярные сериалы', 'Сейчас в эфире', 'Топ рейтинга'],
+    cartoons: ['Популярные мультфильмы', 'Семейное кино', 'Мультсериалы'],
+    anime:    ['Аниме сериалы', 'Аниме фильмы', 'Все аниме'],
+    bookmarks:[]
   };
 
   // ─── Load real data via Lampa TMDB API ──────────────────────
@@ -752,7 +732,7 @@
       listUrls.forEach(function(url, i) {
         var items = got[i];
         if (!items || !items.length) return;
-        var sec = buildSection(TITLES[i] || ('Раздел ' + (i+1)), items);
+        var sec = buildSection(TITLES[i] || ('Раздел ' + (i+1)), items, url);
         contentEl.appendChild(sec);
         var cards = sec.querySelectorAll('.lmp-card');
         var head  = sec.querySelector('.lmp-section__title');
