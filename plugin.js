@@ -8,13 +8,14 @@
   // ─── CSS ──────────────────────────────────────────────────
   var CSS = [
     '@keyframes springUp{0%{opacity:0;transform:translateY(22px) scale(.95)}55%{opacity:1;transform:translateY(-5px) scale(1.02)}75%{transform:translateY(2px)}100%{transform:translateY(0) scale(1)}}',
-    '.lmp-wrap{position:relative;width:100%;height:100%;background:radial-gradient(circle at 20% 10%,rgba(60,85,130,.28),transparent 34%),radial-gradient(circle at 80% 20%,rgba(90,55,120,.20),transparent 32%),linear-gradient(135deg,#070a12 0%,#101522 48%,#06070d 100%);font-family:Inter,sans-serif;overflow-x:hidden;overflow-y:auto}',
+    '.lmp-wrap{position:relative;width:100%;height:100%;background:radial-gradient(circle at 20% 10%,rgba(60,85,130,.28),transparent 34%),radial-gradient(circle at 80% 20%,rgba(90,55,120,.20),transparent 32%),linear-gradient(135deg,#070a12 0%,#101522 48%,#06070d 100%);font-family:Inter,sans-serif;overflow-x:hidden;overflow-y:auto;scroll-behavior:smooth}',
     '.lmp-inner{position:relative;z-index:1}',
     // NAV
     '.lmp-nav{display:flex;align-items:center;gap:2px;padding:8px 20px;position:sticky;top:0;z-index:50;background:rgba(10,10,20,.85);border-bottom:1px solid rgba(255,255,255,.05)}',
     '.lmp-nav__btn{background:none;border:none;color:#bbb;font-family:inherit;font-size:22px;font-weight:700;padding:0 18px;height:100%;border-radius:6px;cursor:pointer;transition:color .2s,background .2s,transform .18s cubic-bezier(.34,1.56,.64,1);position:relative;white-space:nowrap;pointer-events:auto;letter-spacing:.01em}',
     '.lmp-nav__btn:hover{color:#fff;background:rgba(255,255,255,.13);transform:scale(1.07)}',
     '.lmp-nav__btn.active{color:#fff}',
+    '.lmp-nav__btn.nav-focused{color:#fff;background:rgba(255,255,255,.18);transform:scale(1.07);outline:2px solid rgba(255,255,255,.5);outline-offset:2px}',
     '#lmp-nav-pill{position:absolute;bottom:0;height:2px;background:linear-gradient(90deg,#e94560,#ff8a80);border-radius:2px;transition:left .3s cubic-bezier(.4,0,.2,1),width .3s;pointer-events:none}',
     // HERO
     '.lmp-hero{position:relative;height:54vh;min-height:300px;overflow:hidden}',
@@ -285,13 +286,56 @@
     var rows = [];      // [{cards:NodeList, items:[]}]
     var rowIdx = 0;
     var colIdx = 0;
-    var mode   = 'hero'; // 'hero' | 'cards'
+    var navIdx = 0;     // какая вкладка подсвечена в режиме nav
+    var mode   = 'hero'; // 'hero' | 'nav' | 'cards'
+    var _navBtns = []; // ссылка на кнопки (заполняется в create)
+    var _navPill = null;
+
+    // Плавный скролл контейнера .lmp-wrap к нужной позиции
+    function smoothScrollTo(targetY) {
+      if (!html) return;
+      var start   = html.scrollTop;
+      var delta   = targetY - start;
+      if (Math.abs(delta) < 2) return;
+      var startT  = null;
+      var dur     = 320; // ms
+      function step(ts) {
+        if (!startT) startT = ts;
+        var p = Math.min((ts - startT) / dur, 1);
+        // easeOutCubic
+        var ease = 1 - Math.pow(1 - p, 3);
+        html.scrollTop = start + delta * ease;
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    function focusNav(idx) {
+      navIdx = idx;
+      _navBtns.forEach(function(b, i) {
+        b.classList.toggle('nav-focused', i === idx);
+      });
+      // Скроллим наверх чтобы панель была видна
+      smoothScrollTo(0);
+      // Снимаем фокус с карточек / hero
+      html && html.querySelectorAll('.lmp-hcard').forEach(function(c){ c.classList.remove('focused'); });
+      rows.forEach(function(r) {
+        r.cards.forEach(function(c){ c.classList.remove('focused'); });
+        r.head.classList.remove('focused-row');
+      });
+    }
+
+    function activateNavTab(idx) {
+      if (_navBtns[idx]) _navBtns[idx].click();
+    }
 
     function focusCard(rIdx, cIdx) {
       rows.forEach(function(r) {
         r.cards.forEach(function(c){ c.classList.remove('focused'); });
         r.head.classList.remove('focused-row');
       });
+      // Снять фокус nav
+      _navBtns.forEach(function(b){ b.classList.remove('nav-focused'); });
       if (!rows[rIdx]) return;
       rowIdx = rIdx; colIdx = cIdx;
       var row = rows[rIdx];
@@ -299,17 +343,31 @@
       var card = row.cards[cIdx];
       if (!card) return;
       card.classList.add('focused');
-      card.scrollIntoView({block:'nearest',inline:'center'});
-      // Scroll section title into view for vertical navigation
+      card.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});
+      // Плавный скролл секции в зону видимости
       if (html) {
-        var offset = row.head.offsetTop - 60;
-        html.scrollTop = offset;
+        var offset = Math.max(0, row.head.offsetTop - 70);
+        smoothScrollTo(offset);
       }
     }
 
     function setMode(m) {
       mode = m;
       if (m === 'cards' && rows.length) focusCard(0, 0);
+      if (m === 'hero') {
+        _navBtns.forEach(function(b){ b.classList.remove('nav-focused'); });
+        if (hero) {
+          var hcards = html && html.querySelectorAll('.lmp-hcard');
+          if (hcards) hcards.forEach(function(c){ c.classList.remove('focused'); });
+          var curEl = hcards && hcards[hero.getCur ? hero.getCur() + 2 : 0];
+          // Восстановим focused на текущую карточку через hero
+          var track = html && html.querySelector('.lmp-hero__track');
+          if (track) {
+            var all = track.querySelectorAll('.lmp-hcard');
+            all.forEach(function(c){ c.classList.remove('focused'); });
+          }
+        }
+      }
     }
 
     this.create = function() {
@@ -357,6 +415,9 @@
       });
       navEl.appendChild(pill);
       inner.appendChild(navEl);
+      // Сохраняем ссылки для TV-навигации
+      _navBtns = navBtns;
+      _navPill  = pill;
       // Init pill position
       requestAnimationFrame(function(){
         var first = navBtns[0];
@@ -393,7 +454,9 @@
     this.start = function() {
       Lampa.Controller.add('content', {
         toggle: function() {
-          if (mode === 'hero') {
+          if (mode === 'nav') {
+            focusNav(navIdx);
+          } else if (mode === 'hero') {
             if (!hero) return;
             var hcards = html.querySelectorAll('.lmp-hcard');
             hcards.forEach(function(c){ c.classList.remove('focused'); });
@@ -403,7 +466,9 @@
           }
         },
         right: function() {
-          if (mode === 'hero') {
+          if (mode === 'nav') {
+            focusNav(Math.min(navIdx + 1, _navBtns.length - 1));
+          } else if (mode === 'hero') {
             if (!hero) return;
             var next = hero.getCur() + 1;
             if (next < hero.getLen()) hero.goTo(next);
@@ -412,7 +477,9 @@
           }
         },
         left: function() {
-          if (mode === 'hero') {
+          if (mode === 'nav') {
+            focusNav(Math.max(navIdx - 1, 0));
+          } else if (mode === 'hero') {
             if (!hero) return;
             var prev = hero.getCur() - 1;
             if (prev >= 0) hero.goTo(prev);
@@ -423,18 +490,36 @@
         up: function() {
           if (mode === 'cards') {
             if (rowIdx > 0) focusCard(rowIdx-1, Math.min(colIdx, rows[rowIdx-1].cards.length-1));
-            else setMode('hero');
+            else { mode = 'hero'; setMode('hero'); }
+          } else if (mode === 'hero') {
+            // UP из hero → панель вкладок
+            mode = 'nav';
+            focusNav(navIdx);
           }
         },
         down: function() {
-          if (mode === 'hero') {
+          if (mode === 'nav') {
+            // DOWN из nav → hero
+            mode = 'hero';
+            _navBtns.forEach(function(b){ b.classList.remove('nav-focused'); });
+            if (hero) {
+              var hcards = html.querySelectorAll('.lmp-hcard');
+              hcards.forEach(function(c){ c.classList.remove('focused'); });
+              if (hcards[hero.getCur()]) hcards[hero.getCur()].classList.add('focused');
+            }
+            smoothScrollTo(0);
+          } else if (mode === 'hero') {
             if (rows.length) setMode('cards');
           } else {
             if (rowIdx < rows.length-1) focusCard(rowIdx+1, Math.min(colIdx, rows[rowIdx+1].cards.length-1));
           }
         },
         enter: function() {
-          if (mode === 'hero') {
+          if (mode === 'nav') {
+            activateNavTab(navIdx);
+            mode = 'hero';
+            _navBtns.forEach(function(b){ b.classList.remove('nav-focused'); });
+          } else if (mode === 'hero') {
             if (!hero) return;
             var m = hero.getItem(hero.getCur());
             if (m && m.id) openMovie(m);
@@ -444,7 +529,17 @@
           }
         },
         back: function() {
-          Lampa.Activity.backward();
+          if (mode === 'nav' || mode === 'cards') {
+            mode = 'hero';
+            _navBtns.forEach(function(b){ b.classList.remove('nav-focused'); });
+            rows.forEach(function(r){
+              r.cards.forEach(function(c){ c.classList.remove('focused'); });
+              r.head.classList.remove('focused-row');
+            });
+            smoothScrollTo(0);
+          } else {
+            Lampa.Activity.backward();
+          }
         }
       });
       Lampa.Controller.toggle('content');
