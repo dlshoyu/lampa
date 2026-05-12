@@ -49,10 +49,10 @@
     '.lmp-section__title.focused-row{color:#e94560}',
     '.lmp-cards-wrap{overflow-x:auto;overflow-y:visible;scrollbar-width:none}',
     '.lmp-cards-wrap::-webkit-scrollbar{display:none}',
-    '.lmp-cards{display:flex;gap:24px;padding:10px 28px 16px;width:max-content}',
+    '.lmp-cards{display:flex;gap:24px;padding:10px 28px 30px;width:max-content;overflow:visible}',
     // CARD
-    '.lmp-card{flex-shrink:0;width:185px;cursor:pointer;position:relative;transition:transform .38s ease-out}',
-    '.lmp-card.focused{transform:scale(1.11) translateY(-5px)}',
+    '.lmp-card{flex-shrink:0;width:185px;cursor:pointer;position:relative;transition:transform .30s ease-out}',
+    '.lmp-card.focused{transform:scale(1.16) translateY(-8px)}',
     '.lmp-card__poster{position:relative;width:185px;height:270px;border-radius:10px;overflow:hidden;background:#1e1e2e}',
     '.lmp-card__poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .45s ease-out;pointer-events:none}',
     '.lmp-card.focused .lmp-card__poster img{transform:scale(1.08)}',
