@@ -567,23 +567,69 @@
     };
 
     // Find and hide Lampa's header title, inject our nav into header bar
+    var _hiddenEls = [];
+    var _injectedNav = null;
     var _styleEl = null;
     function hideHeader() {
+      // 1. Прозрачный фон шапки — убираем серость
       if (!_styleEl) {
         _styleEl = document.createElement('style');
         _styleEl.id = 'lmp-head-override';
-        // Скрываем шапку Lampa и приводим фон приложения к нашему градиенту
         _styleEl.textContent = [
-          '.head{display:none!important}',
-          'body,.app,.layer{background:#070a12!important}'
+          '.head{background:transparent!important;border-bottom:none!important;box-shadow:none!important}',
+          '.head__logo,.head__logo-text,.head__title{visibility:hidden!important}'
         ].join('');
         document.head.appendChild(_styleEl);
       }
+      // 2. Инжектируем наш nav в то же пространство что и кнопки настроек
+      var headEl = document.querySelector('.head');
+      var navEl  = html && html.querySelector('.lmp-nav');
+      if (headEl && navEl && !_injectedNav) {
+        var headH = headEl.offsetHeight || 52;
+        navEl.style.cssText = [
+          'position:fixed',
+          'top:0',
+          'left:140px',
+          'right:0',
+          'height:' + headH + 'px',
+          'padding:0 4px',
+          'background:transparent',
+          'z-index:9999',
+          'pointer-events:none',
+          'display:flex',
+          'align-items:center'
+        ].join(';');
+        document.body.appendChild(navEl);
+        _injectedNav = navEl;
+        // Уточняем left после layout чтобы не перекрыть логотип
+        setTimeout(function() {
+          if (!_injectedNav) return;
+          var leftEdge = 0;
+          headEl.querySelectorAll('*').forEach(function(el) {
+            if (navEl.contains(el)) return;
+            var r = el.getBoundingClientRect();
+            if (!r.width || !r.height) return;
+            if (r.width > window.innerWidth * 0.3) return;
+            if ((r.left + r.width / 2) < window.innerWidth / 2) {
+              leftEdge = Math.max(leftEdge, r.right);
+            }
+          });
+          navEl.style.left = Math.max(leftEdge + 8, 120) + 'px';
+        }, 300);
+      }
     }
     function showHeader() {
-      if (_styleEl) {
-        _styleEl.remove();
-        _styleEl = null;
+      if (_styleEl) { _styleEl.remove(); _styleEl = null; }
+      _hiddenEls.forEach(function(el) {
+        el.style.visibility = el.getAttribute('data-lmp-v') || '';
+        el.removeAttribute('data-lmp-v');
+      });
+      _hiddenEls = [];
+      if (_injectedNav) {
+        var inner = html && html.querySelector('.lmp-inner');
+        if (inner) inner.insertBefore(_injectedNav, inner.firstChild);
+        _injectedNav.style.cssText = '';
+        _injectedNav = null;
       }
     }
 
