@@ -570,8 +570,17 @@
     var _hiddenEls = [];
     var _injectedNav = null;
     var _styleEl = null;
+    var _headObserver = null;
+    function applyHeadTransparency() {
+      var headEl = document.querySelector('.head');
+      if (!headEl) return;
+      headEl.style.setProperty('background', 'transparent', 'important');
+      headEl.style.setProperty('background-color', 'transparent', 'important');
+      headEl.style.setProperty('box-shadow', 'none', 'important');
+      headEl.style.setProperty('border-bottom', 'none', 'important');
+    }
     function hideHeader() {
-      // 1. Прозрачный фон шапки — убираем серость
+      // 1. CSS + прямой JS override inline-стилей шапки Lampa
       if (!_styleEl) {
         _styleEl = document.createElement('style');
         _styleEl.id = 'lmp-head-override';
@@ -580,6 +589,15 @@
           '.head__logo,.head__logo-text,.head__title{visibility:hidden!important}'
         ].join('');
         document.head.appendChild(_styleEl);
+      }
+      applyHeadTransparency();
+      // MutationObserver — если Lampa пересетит inline style, сбрасываем снова
+      if (!_headObserver) {
+        var headEl = document.querySelector('.head');
+        if (headEl) {
+          _headObserver = new MutationObserver(applyHeadTransparency);
+          _headObserver.observe(headEl, {attributes:true, attributeFilter:['style']});
+        }
       }
       // 2. Инжектируем наш nav в то же пространство что и кнопки настроек
       var headEl = document.querySelector('.head');
@@ -620,6 +638,7 @@
     }
     function showHeader() {
       if (_styleEl) { _styleEl.remove(); _styleEl = null; }
+      if (_headObserver) { _headObserver.disconnect(); _headObserver = null; }
       _hiddenEls.forEach(function(el) {
         el.style.visibility = el.getAttribute('data-lmp-v') || '';
         el.removeAttribute('data-lmp-v');
