@@ -51,8 +51,8 @@
     '.lmp-cards-wrap::-webkit-scrollbar{display:none}',
     '.lmp-cards{display:flex;gap:24px;padding:10px 28px 30px;width:max-content}',
     // CARD
-    '.lmp-card{flex-shrink:0;width:185px;cursor:pointer;position:relative;transition:transform .30s ease-out}',
-    '.lmp-card.focused{transform:scale(1.16) translateY(-8px)}',
+    '.lmp-card{flex-shrink:0;width:185px;cursor:pointer;position:relative;z-index:1;transition:transform .30s ease-out,z-index 0s .30s;will-change:transform}',
+    '.lmp-card.focused{transform:scale(1.18) translateY(-8px);z-index:10;transition:transform .30s ease-out,z-index 0s}',
     '.lmp-card__poster{position:relative;width:185px;height:270px;border-radius:10px;overflow:hidden;background:#1e1e2e}',
     '.lmp-card__poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .45s ease-out;pointer-events:none}',
     '.lmp-card.focused .lmp-card__poster img{transform:scale(1.08)}',
@@ -571,6 +571,7 @@
     var _injectedNav = null;
     var _styleEl = null;
     var _headObserver = null;
+    var _headBg = null;
     function applyHeadTransparency() {
       var headEl = document.querySelector('.head');
       if (!headEl) return;
@@ -599,7 +600,16 @@
           _headObserver.observe(headEl, {attributes:true, attributeFilter:['style']});
         }
       }
-      // 2. Инжектируем наш nav в то же пространство что и кнопки настроек
+      // 2. Фиксированный overlay поверх .head с нашим цветом фона
+      if (!_headBg) {
+        var headEl2 = document.querySelector('.head');
+        var bgH = headEl2 ? headEl2.offsetHeight : 52;
+        _headBg = document.createElement('div');
+        _headBg.id = 'lmp-head-bg';
+        _headBg.style.cssText = 'position:fixed;top:0;left:0;right:0;height:' + bgH + 'px;background:#080b14;z-index:998;pointer-events:none';
+        document.body.appendChild(_headBg);
+      }
+      // 3. Инжектируем наш nav в то же пространство что и кнопки настроек
       var headEl = document.querySelector('.head');
       var navEl  = html && html.querySelector('.lmp-nav');
       if (headEl && navEl && !_injectedNav) {
@@ -639,6 +649,7 @@
     function showHeader() {
       if (_styleEl) { _styleEl.remove(); _styleEl = null; }
       if (_headObserver) { _headObserver.disconnect(); _headObserver = null; }
+      if (_headBg) { _headBg.remove(); _headBg = null; }
       _hiddenEls.forEach(function(el) {
         el.style.visibility = el.getAttribute('data-lmp-v') || '';
         el.removeAttribute('data-lmp-v');
