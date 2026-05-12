@@ -638,7 +638,9 @@
       }
       return '#' + f(0) + f(8) + f(4);
     }
-    return [hsl2hex(h1, 55, 14), hsl2hex(h2, 45, 10), hsl2hex(h3, 50, 8)];
+    // 3 слоя: яркий акцент (верх), средний, тёмная база
+    // l=22%/16%/10% + s=75%/60%/50% — заметно отличаются, но остаются тёмными для TV
+    return [hsl2hex(h1, 75, 22), hsl2hex(h2, 60, 16), hsl2hex(h3, 50, 10)];
   }
 
   // Примечание: canvas extraction заблокирована CORS со стороны TMDB (http://lampa.mx без Access-Control-Allow-Origin)
