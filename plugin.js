@@ -54,8 +54,7 @@
     '.lmp-card{flex-shrink:0;width:185px;cursor:pointer;position:relative;z-index:1;transition:transform .30s ease-out,z-index 0s .30s;will-change:transform}',
     '.lmp-card.focused{transform:scale(1.18) translateY(-8px);z-index:10;transition:transform .30s ease-out,z-index 0s}',
     '.lmp-card__poster{position:relative;width:185px;height:270px;border-radius:10px;overflow:hidden;background:#1e1e2e}',
-    '.lmp-card__poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .45s ease-out;pointer-events:none}',
-    '.lmp-card.focused .lmp-card__poster img{transform:scale(1.08)}',
+    '.lmp-card__poster img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}',
     '.lmp-card__title{margin-top:9px;font-size:15px;font-weight:500;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;pointer-events:none;color:#bbb}',
     '.lmp-card__ratings{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:8px 5px 6px;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent);pointer-events:none}',
     '.lmp-crb{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:700;line-height:1;white-space:nowrap}',
@@ -537,7 +536,7 @@
           } else {
             var item = rows[rowIdx].items[colIdx];
             if (item && item._all) {
-              Lampa.Activity.push({url: item._url, title: item._title, component: 'catalog'});
+              Lampa.Activity.push({url: item._url, title: item._title, component: 'category_list', page: 1});
             } else if (item && item.id) {
               openMovie(item);
             }
@@ -609,58 +608,14 @@
         _headBg.style.cssText = 'position:fixed;top:0;left:0;right:0;height:' + bgH + 'px;background:#080b14;z-index:998;pointer-events:none';
         document.body.appendChild(_headBg);
       }
-      // 3. Инжектируем наш nav в то же пространство что и кнопки настроек
-      var headEl = document.querySelector('.head');
-      var navEl  = html && html.querySelector('.lmp-nav');
-      if (headEl && navEl && !_injectedNav) {
-        var headH = headEl.offsetHeight || 52;
-        navEl.style.cssText = [
-          'position:fixed',
-          'top:0',
-          'left:140px',
-          'right:0',
-          'height:' + headH + 'px',
-          'padding:0 4px',
-          'background:transparent',
-          'z-index:9999',
-          'pointer-events:none',
-          'display:flex',
-          'align-items:center'
-        ].join(';');
-        document.body.appendChild(navEl);
-        _injectedNav = navEl;
-        // Уточняем left после layout чтобы не перекрыть логотип
-        setTimeout(function() {
-          if (!_injectedNav) return;
-          var leftEdge = 0;
-          headEl.querySelectorAll('*').forEach(function(el) {
-            if (navEl.contains(el)) return;
-            var r = el.getBoundingClientRect();
-            if (!r.width || !r.height) return;
-            if (r.width > window.innerWidth * 0.3) return;
-            if ((r.left + r.width / 2) < window.innerWidth / 2) {
-              leftEdge = Math.max(leftEdge, r.right);
-            }
-          });
-          navEl.style.left = Math.max(leftEdge + 8, 120) + 'px';
-        }, 300);
-      }
     }
+    // showHeader clean
     function showHeader() {
       if (_styleEl) { _styleEl.remove(); _styleEl = null; }
       if (_headObserver) { _headObserver.disconnect(); _headObserver = null; }
       if (_headBg) { _headBg.remove(); _headBg = null; }
-      _hiddenEls.forEach(function(el) {
-        el.style.visibility = el.getAttribute('data-lmp-v') || '';
-        el.removeAttribute('data-lmp-v');
-      });
       _hiddenEls = [];
-      if (_injectedNav) {
-        var inner = html && html.querySelector('.lmp-inner');
-        if (inner) inner.insertBefore(_injectedNav, inner.firstChild);
-        _injectedNav.style.cssText = '';
-        _injectedNav = null;
-      }
+      _injectedNav = null;
     }
 
     this.pause  = function() { showHeader(); if (hero) hero.pause(); };
@@ -817,7 +772,7 @@
           c.addEventListener('click', function() {
             var item = rowItems[j];
             if (item && item._all) {
-              Lampa.Activity.push({url: item._url, title: item._title, component: 'catalog'});
+              Lampa.Activity.push({url: item._url, title: item._title, component: 'category_list', page: 1});
             } else if (item && item.id) {
               openMovie(item);
             }
