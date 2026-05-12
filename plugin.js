@@ -14,8 +14,8 @@
     '.lmp-inner{position:relative;z-index:1}',
     // NAV
     '.lmp-nav{display:flex;align-items:center;gap:2px;padding:8px 20px;position:sticky;top:0;z-index:50;background:rgba(10,10,20,.9);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.05)}',
-    '.lmp-nav__btn{background:none;border:none;color:#bbb;font-family:inherit;font-size:22px;font-weight:700;padding:0 18px;height:100%;border-radius:6px;cursor:pointer;transition:color .2s,background .2s;position:relative;white-space:nowrap;pointer-events:auto;letter-spacing:.01em}',
-    '.lmp-nav__btn:hover{color:#fff;background:rgba(255,255,255,.07)}',
+    '.lmp-nav__btn{background:none;border:none;color:#bbb;font-family:inherit;font-size:22px;font-weight:700;padding:0 18px;height:100%;border-radius:6px;cursor:pointer;transition:color .2s,background .2s,transform .18s cubic-bezier(.34,1.56,.64,1);position:relative;white-space:nowrap;pointer-events:auto;letter-spacing:.01em}',
+    '.lmp-nav__btn:hover{color:#fff;background:rgba(255,255,255,.13);transform:scale(1.07)}',
     '.lmp-nav__btn.active{color:#fff}',
     '#lmp-nav-pill{position:absolute;bottom:0;height:2px;background:linear-gradient(90deg,#e94560,#ff8a80);border-radius:2px;transition:left .3s cubic-bezier(.4,0,.2,1),width .3s;pointer-events:none}',
     // HERO
@@ -49,11 +49,12 @@
     '.lmp-cards-wrap::-webkit-scrollbar{display:none}',
     '.lmp-cards{display:flex;gap:12px;padding:8px 20px 10px;width:max-content}',
     // CARD
-    '.lmp-card{flex-shrink:0;width:140px;cursor:pointer;position:relative}',
-    '.lmp-card__poster{position:relative;width:140px;height:204px;border-radius:8px;overflow:hidden;background:#1e1e2e;transition:transform .3s cubic-bezier(.4,0,.2,1),box-shadow .3s,outline .15s}',
-    '.lmp-card.focused .lmp-card__poster{transform:scale(1.06) translateY(-4px);box-shadow:0 14px 36px rgba(0,0,0,.8);outline:2px solid rgba(255,255,255,.5)}',
+    '.lmp-card{flex-shrink:0;width:140px;cursor:pointer;position:relative;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}',
+    '.lmp-card.focused{transform:scale(1.07) translateY(-3px)}',
+    '.lmp-card__poster{position:relative;width:140px;height:204px;border-radius:8px;overflow:hidden;background:#1e1e2e;transition:box-shadow .3s}',
+    '.lmp-card.focused .lmp-card__poster{box-shadow:0 12px 36px rgba(0,0,0,.85),0 0 0 2px rgba(233,69,96,.65)}',
     '.lmp-card__poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;pointer-events:none}',
-    '.lmp-card.focused .lmp-card__poster img{transform:scale(1.08)}',
+    '.lmp-card.focused .lmp-card__poster img{transform:scale(1.1)}',
     '.lmp-card__title{margin-top:6px;font-size:12px;font-weight:500;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;pointer-events:none;color:#bbb;transition:color .2s}',
     '.lmp-card.focused .lmp-card__title{color:#fff}',
     '.lmp-card__ratings{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 3px 4px;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent);pointer-events:none}',
@@ -246,14 +247,14 @@
           jumping = true;
           var ri = realIdx(cur);
           cur = CLONE + ri;
-          // Отключаем transition
+          // Мгновенный прыжок: transition off → reflow → следующий кадр
           track.style.transition = 'none';
           track.style.transform = 'translateX(-' + (cur * cardWidth()) + 'px)';
-          // Форсируем reflow чтобы браузер зафиксировал новую позицию
-          void track.offsetWidth;
-          // Снимаем блокировку только в следующем кадре
+          track.getBoundingClientRect(); // надёжнее offsetWidth для форс. reflow
           requestAnimationFrame(function() {
-            jumping = false;
+            requestAnimationFrame(function() { // двойной rAF гарантирует отрисовку
+              jumping = false;
+            });
           });
         }
       }, 680);
@@ -279,17 +280,16 @@
           goTo(i);
         }
       });
-      // Mouse hover → .focused + фон
+      // Mouse hover → .focused + реальные цвета фона
       el.addEventListener('mouseenter', function() {
         var m = extended[i];
-        if (m && m.colors) bg.set(m.colors);
-        // Добавляем focused только на эту карточку
+        if (!m) return;
+        extractAndSet(m.img, m.colors, function(cols) { bg.set(cols); });
         track.querySelectorAll('.lmp-hcard').forEach(function(c){ c.classList.remove('focused'); });
         el.classList.add('focused');
       });
       el.addEventListener('mouseleave', function() {
         el.classList.remove('focused');
-        // Вернуть focused на текущую активную
         var hcards = track.querySelectorAll('.lmp-hcard');
         if (hcards[cur]) hcards[cur].classList.add('focused');
       });
@@ -299,10 +299,14 @@
       d.addEventListener('click', function(e) { e.stopPropagation(); goTo(CLONE + i); });
     });
 
-    // Устанавливаем начальную позицию только когда размеры известны
-    requestAnimationFrame(function() {
-      jumpTo(cur);
-    });
+    // Устанавливаем начальную позицию — ждём пока offsetWidth > 0
+    (function tryJump() {
+      if (track.parentElement && track.parentElement.offsetWidth > 0) {
+        jumpTo(cur);
+      } else {
+        requestAnimationFrame(tryJump);
+      }
+    })();
 
     var timer = setInterval(function() { goTo(cur + 1); }, 5000);
 
@@ -601,10 +605,9 @@
   // ─── Data: Lampa TMDB API + mock fallback ────────────────
   var IMG = 'https://image.tmdb.org/t/p/';
 
-  // Генерируем уникальную цветовую палитру на основе id фильма
+  // Fallback: уникальные цвета по id (golden ratio hue)
   function itemColors(id) {
     var n = id || 0;
-    // Золотое сечение для хорошего распределения оттенков
     var h1 = (n * 137.508) % 360;
     var h2 = (h1 + 80)  % 360;
     var h3 = (h1 + 200) % 360;
@@ -619,6 +622,40 @@
       return '#' + f(0) + f(8) + f(4);
     }
     return [hsl2hex(h1, 55, 14), hsl2hex(h2, 45, 10), hsl2hex(h3, 50, 8)];
+  }
+
+  // Кеш извлечённых цветов {imgUrl: [hex,hex,hex]}
+  var _colorCache = {};
+
+  // Извлекаем доминирующие цвета из постера через canvas (async)
+  // cb вызывается немедленно с fallback, затем с реальными цветами
+  function extractAndSet(imgSrc, fallback, setBg) {
+    setBg(fallback);
+    if (_colorCache[imgSrc]) { setBg(_colorCache[imgSrc]); return; }
+    try {
+      var img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function() {
+        try {
+          var c = document.createElement('canvas');
+          c.width = 6; c.height = 9;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, 6, 9);
+          var d = ctx.getImageData(0, 0, 6, 9).data;
+          // Берём 3 пикселя: верхний, средний, нижний — и сильно затемняем
+          var pts = [[1,1],[3,4],[5,7]];
+          var cols = pts.map(function(p) {
+            var i = (p[1] * 6 + p[0]) * 4;
+            return '#' + [d[i], d[i+1], d[i+2]].map(function(v) {
+              return Math.round(v * 0.3).toString(16).padStart(2, '0');
+            }).join('');
+          });
+          _colorCache[imgSrc] = cols;
+          setBg(cols);
+        } catch(e) {}
+      };
+      img.src = imgSrc;
+    } catch(e) {}
   }
 
   function fromCard(item) {
@@ -707,11 +744,11 @@
             c.style.opacity='';
             c.style.animation='springUp .5s cubic-bezier(.4,0,.2,1) '+(j*28)+'ms both';
           }, 50);
-          // Mouse hover → .focused + фон
+          // Mouse hover → .focused + реальные цвета фона из постера
           c.addEventListener('mouseenter', function() {
             var m = items[j];
-            if (m && m.colors) bgInst.set(m.colors);
-            // Убрать focused у всех карточек всех рядов, добавить этой
+            if (!m) return;
+            extractAndSet(m.img, m.colors, function(cols) { bgInst.set(cols); });
             newRows.forEach(function(r){ r.cards.forEach(function(x){ x.classList.remove('focused'); }); });
             c.classList.add('focused');
           });
