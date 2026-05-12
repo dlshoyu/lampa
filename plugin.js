@@ -29,12 +29,12 @@
     '.lmp-hcard__title{font-size:20px;font-weight:700;color:#fff;line-height:1.2;text-shadow:0 2px 10px rgba(0,0,0,.7)}',
     '.lmp-hcard__desc{font-size:12px;color:#bbb;margin-top:4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
     '.lmp-hcard__meta{margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}',
-    '.lmp-rb{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:3px 8px;font-size:12px;font-weight:700}',
+    '.lmp-rb{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:4px 10px;font-size:15px;font-weight:700}',
     '.lmp-rb--imdb{background:rgba(245,197,24,.15);border:1px solid rgba(245,197,24,.35);color:#f5c518}',
     '.lmp-rb--kp{background:rgba(255,102,0,.15);border:1px solid rgba(255,102,0,.35);color:#ff6600}',
     '.lmp-rb--user{background:rgba(99,202,130,.15);border:1px solid rgba(99,202,130,.35);color:#63ca82}',
     '.lmp-rb--qual{border:1px solid rgba(255,255,255,.25);color:#e0e0e0;background:rgba(255,255,255,.08)}',
-    '.lmp-hcard__year{font-size:12px;color:#888;margin-left:4px}',
+    '.lmp-hcard__year{font-size:13px;color:#888;margin-left:4px}',
     // HERO CONTROLS
     '.lmp-hero__ctrls{position:absolute;bottom:16px;right:24px;display:flex;align-items:center;gap:6px;z-index:10}',
     '.lmp-hdot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);border:none;cursor:pointer;transition:all .3s}',
@@ -55,14 +55,14 @@
     '.lmp-card.focused .lmp-card__poster{box-shadow:0 12px 36px rgba(0,0,0,.85),0 0 0 2px rgba(233,69,96,.65)}',
     '.lmp-card__poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s;pointer-events:none}',
     '.lmp-card.focused .lmp-card__poster img{transform:scale(1.1)}',
-    '.lmp-card__title{margin-top:6px;font-size:12px;font-weight:500;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;pointer-events:none;color:#bbb;transition:color .2s}',
+    '.lmp-card__title{margin-top:6px;font-size:13px;font-weight:500;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;pointer-events:none;color:#bbb;transition:color .2s}',
     '.lmp-card.focused .lmp-card__title{color:#fff}',
-    '.lmp-card__ratings{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 3px 4px;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent);pointer-events:none}',
-    '.lmp-crb{display:inline-flex;align-items:center;gap:2px;font-size:8.5px;font-weight:700;line-height:1;white-space:nowrap}',
+    '.lmp-card__ratings{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 4px 5px;background:linear-gradient(0deg,rgba(0,0,0,.9),transparent);pointer-events:none}',
+    '.lmp-crb{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;line-height:1;white-space:nowrap}',
     '.lmp-crb--imdb{color:#f5c518}.lmp-crb--kp{color:#ff6600}.lmp-crb--user{color:#63ca82}',
     '.lmp-crb--qual{color:#bbb;font-weight:800;letter-spacing:.5px}',
     /* lmp-card__title moved above with .focused variant */
-    '.lmp-card__year{font-size:10px;color:#555;margin-top:2px;pointer-events:none}',
+    '.lmp-card__year{font-size:12px;color:#666;margin-top:3px;pointer-events:none}',
     '.lmp-empty{text-align:center;padding:60px 20px;color:#444;font-size:14px}'
   ].join('');
 
@@ -392,10 +392,10 @@
       var pill = document.createElement('div');
       pill.id = 'lmp-nav-pill';
       var NAV_TABS = [
-        {id:'main',     label:'Главная',     heroUrl:'trending/all/week',           listUrls:['movie/popular','tv/popular','movie/top_rated']},
-        {id:'movies',   label:'Фильмы',      heroUrl:'movie/popular',               listUrls:['movie/popular','movie/now_playing','movie/top_rated']},
-        {id:'series',   label:'Сериалы',     heroUrl:'tv/popular',                  listUrls:['tv/popular','tv/on_the_air','tv/top_rated']},
-        {id:'cartoons', label:'Мультфильмы', heroUrl:'discover/movie?with_genres=16', listUrls:['discover/movie?with_genres=16','discover/movie?with_genres=16&sort_by=vote_average.desc&vote_count.gte=300','discover/tv?with_genres=16']},
+        {id:'main',     label:'Главная',     heroUrl:'trending/all/week',            listUrls:['movie/popular','tv/popular','movie/top_rated']},
+        {id:'movies',   label:'Фильмы',      heroUrl:'movie/popular',                listUrls:['movie/popular','movie/now_playing','movie/top_rated']},
+        {id:'series',   label:'Сериалы',     heroUrl:'tv/popular',                   listUrls:['tv/popular','tv/on_the_air','tv/top_rated']},
+        {id:'cartoons', label:'Мультфильмы', heroUrl:'discover/movie?with_genres=16',  listUrls:['discover/movie?with_genres=16','discover/movie?with_genres=10751','discover/tv?with_genres=16']},
       ];
       var activeTab = NAV_TABS[0];
       var navBtns = [];
@@ -687,10 +687,11 @@
 
   // ─── Структура секций по вкладкам ────────────────────────────
   var TAB_SECTIONS = {
-    main:     ['В тренде', 'Популярные фильмы', 'Популярные сериалы'],
-    movies:   ['Популярные', 'Сейчас в кино', 'Топ рейтинга'],
-    series:   ['Популярные сериалы', 'Сейчас в эфире', 'Топ рейтинга'],
-    cartoons: ['Популярные мультфильмы', 'Семейное', 'Для детей']
+    // Заголовки должны точно соответствовать порядку listUrls в NAV_TABS!
+    main:     ['Популярные фильмы', 'Популярные сериалы', 'Топ рейтинга'],   // movie/popular, tv/popular, movie/top_rated
+    movies:   ['Популярные', 'Сейчас в кино', 'Топ рейтинга'],            // movie/popular, movie/now_playing, movie/top_rated
+    series:   ['Популярные сериалы', 'Сейчас в эфире', 'Топ рейтинга'],    // tv/popular, tv/on_the_air, tv/top_rated
+    cartoons: ['Популярные мультфильмы', 'Семейное кино', 'Мультсериалы'] // genre 16, genre 10751(Family), tv genre 16
   };
 
   // ─── Load real data via Lampa TMDB API ──────────────────────
