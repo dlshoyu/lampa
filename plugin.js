@@ -47,9 +47,9 @@
     '.lmp-section__head{display:flex;align-items:center;justify-content:space-between;padding:0 24px;margin-bottom:16px}',
     '.lmp-section__title{font-size:20px;font-weight:600;color:#fff}',
     '.lmp-section__title.focused-row{color:#e94560}',
-    '.lmp-cards-wrap{overflow-x:auto;overflow-y:visible;scrollbar-width:none}',
+    '.lmp-cards-wrap{overflow:visible;scrollbar-width:none}',
     '.lmp-cards-wrap::-webkit-scrollbar{display:none}',
-    '.lmp-cards{display:flex;gap:24px;padding:10px 28px 30px;width:max-content;overflow:visible}',
+    '.lmp-cards{display:flex;gap:24px;padding:10px 28px 30px;width:max-content}',
     // CARD
     '.lmp-card{flex-shrink:0;width:185px;cursor:pointer;position:relative;transition:transform .30s ease-out}',
     '.lmp-card.focused{transform:scale(1.16) translateY(-8px)}',
