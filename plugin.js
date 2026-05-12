@@ -265,6 +265,7 @@
       getCur:  function() { return realIdx(cur); },
       getLen:  function() { return real; },
       getItem: function(i){ return items[i]; },
+      refocus: function() { jumpTo(cur); },
       pause:   function() { clearInterval(timer); },
       resume:  function() {
         jumping = false;
@@ -352,20 +353,20 @@
 
     function setMode(m) {
       mode = m;
-      if (m === 'cards' && rows.length) focusCard(0, 0);
+      if (m === 'cards' && rows.length) {
+        focusCard(0, 0);
+      }
       if (m === 'hero') {
+        // Снять фокус nav
         _navBtns.forEach(function(b){ b.classList.remove('nav-focused'); });
-        if (hero) {
-          var hcards = html && html.querySelectorAll('.lmp-hcard');
-          if (hcards) hcards.forEach(function(c){ c.classList.remove('focused'); });
-          var curEl = hcards && hcards[hero.getCur ? hero.getCur() + 2 : 0];
-          // Восстановим focused на текущую карточку через hero
-          var track = html && html.querySelector('.lmp-hero__track');
-          if (track) {
-            var all = track.querySelectorAll('.lmp-hcard');
-            all.forEach(function(c){ c.classList.remove('focused'); });
-          }
-        }
+        // Снять фокус с карточек и заголовков секций
+        rows.forEach(function(r) {
+          r.cards.forEach(function(c){ c.classList.remove('focused'); });
+          r.head.classList.remove('focused-row');
+        });
+        // Восстановить фокус hero-карточки и прокрутить наверх
+        if (hero && hero.refocus) hero.refocus();
+        smoothScrollTo(0);
       }
     }
 
