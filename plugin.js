@@ -280,11 +280,11 @@
           goTo(i);
         }
       });
-      // Mouse hover → .focused + реальные цвета фона
+      // Mouse hover → .focused + цвета фона (по id)
       el.addEventListener('mouseenter', function() {
         var m = extended[i];
         if (!m) return;
-        extractAndSet(m.img, m.colors, function(cols) { bg.set(cols); });
+        bg.set(m.colors);
         track.querySelectorAll('.lmp-hcard').forEach(function(c){ c.classList.remove('focused'); });
         el.classList.add('focused');
       });
@@ -308,14 +308,31 @@
       }
     })();
 
+    // Сброс jumping при возврате фокуса (чтобы не застрял из-за смены вкладки/фокуса)
+    var onVisible = function() {
+      if (!document.hidden) { jumping = false; jumpTo(cur); }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+
     var timer = setInterval(function() { goTo(cur + 1); }, 5000);
 
     return {
-      goTo: function(i) { goTo(CLONE + i); },
-      getCur: function(){ return realIdx(cur); },
-      getLen: function(){ return real; },
+      goTo:    function(i) { goTo(CLONE + i); },
+      getCur:  function() { return realIdx(cur); },
+      getLen:  function() { return real; },
       getItem: function(i){ return items[i]; },
-      stop: function(){ clearInterval(timer); }
+      pause:   function() { clearInterval(timer); },
+      resume:  function() {
+        jumping = false;
+        jumpTo(cur);
+        timer = setInterval(function() { goTo(cur + 1); }, 5000);
+      },
+      stop: function() {
+        clearInterval(timer);
+        document.removeEventListener('visibilitychange', onVisible);
+        window.removeEventListener('focus', onVisible);
+      }
     };
   }
 
@@ -580,8 +597,8 @@
       }
     }
 
-    this.pause  = function() { showHeader(); };
-    this.resume = function() { Lampa.Controller.toggle('content'); hideHeader(); };
+    this.pause  = function() { showHeader(); if (hero) hero.pause(); };
+    this.resume = function() { Lampa.Controller.toggle('content'); hideHeader(); if (hero) hero.resume(); };
     this.destroy = function() {
       showHeader();
       if (hero) hero.stop();
@@ -624,39 +641,8 @@
     return [hsl2hex(h1, 55, 14), hsl2hex(h2, 45, 10), hsl2hex(h3, 50, 8)];
   }
 
-  // Кеш извлечённых цветов {imgUrl: [hex,hex,hex]}
-  var _colorCache = {};
-
-  // Извлекаем доминирующие цвета из постера через canvas (async)
-  // cb вызывается немедленно с fallback, затем с реальными цветами
-  function extractAndSet(imgSrc, fallback, setBg) {
-    setBg(fallback);
-    if (_colorCache[imgSrc]) { setBg(_colorCache[imgSrc]); return; }
-    try {
-      var img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = function() {
-        try {
-          var c = document.createElement('canvas');
-          c.width = 6; c.height = 9;
-          var ctx = c.getContext('2d');
-          ctx.drawImage(img, 0, 0, 6, 9);
-          var d = ctx.getImageData(0, 0, 6, 9).data;
-          // Берём 3 пикселя: верхний, средний, нижний — и сильно затемняем
-          var pts = [[1,1],[3,4],[5,7]];
-          var cols = pts.map(function(p) {
-            var i = (p[1] * 6 + p[0]) * 4;
-            return '#' + [d[i], d[i+1], d[i+2]].map(function(v) {
-              return Math.round(v * 0.3).toString(16).padStart(2, '0');
-            }).join('');
-          });
-          _colorCache[imgSrc] = cols;
-          setBg(cols);
-        } catch(e) {}
-      };
-      img.src = imgSrc;
-    } catch(e) {}
-  }
+  // Примечание: canvas extraction заблокирована CORS со стороны TMDB (http://lampa.mx без Access-Control-Allow-Origin)
+  // Используем цвета на основе id (золотое сечение) — всегда дают вариацию цветов
 
   function fromCard(item) {
     var score = item.vote_average ? (+item.vote_average).toFixed(1) : '—';
@@ -744,11 +730,11 @@
             c.style.opacity='';
             c.style.animation='springUp .5s cubic-bezier(.4,0,.2,1) '+(j*28)+'ms both';
           }, 50);
-          // Mouse hover → .focused + реальные цвета фона из постера
+          // Mouse hover → .focused + цвета фона (по id)
           c.addEventListener('mouseenter', function() {
             var m = items[j];
             if (!m) return;
-            extractAndSet(m.img, m.colors, function(cols) { bgInst.set(cols); });
+            bgInst.set(m.colors);
             newRows.forEach(function(r){ r.cards.forEach(function(x){ x.classList.remove('focused'); }); });
             c.classList.add('focused');
           });
@@ -801,7 +787,7 @@
       try {
         LMP_SETTINGS.forEach(function(s) {
           Lampa.SettingsApi.addParam({
-            component: 'general',
+            component: 'player',
             param: { name: s.name, type: s.type, values: s.values, default: s.default },
             field: { name: s.label, description: s.desc }
           });
