@@ -7,22 +7,22 @@
 
   // ─── CSS ──────────────────────────────────────────────────
   var CSS = [
-    '@keyframes springUp{0%{opacity:0;transform:translateY(22px) scale(.95)}55%{opacity:1;transform:translateY(-5px) scale(1.02)}75%{transform:translateY(2px)}100%{transform:translateY(0) scale(1)}}',
+    '@keyframes fadeUp{0%{opacity:0;transform:translateY(14px)}100%{opacity:1;transform:translateY(0)}}',
     '.lmp-wrap{position:relative;width:100%;height:100%;background:radial-gradient(circle at 20% 10%,rgba(60,85,130,.28),transparent 34%),radial-gradient(circle at 80% 20%,rgba(90,55,120,.20),transparent 32%),linear-gradient(135deg,#070a12 0%,#101522 48%,#06070d 100%);font-family:Inter,sans-serif;overflow-x:hidden;overflow-y:auto;scroll-behavior:smooth}',
     '.lmp-inner{position:relative;z-index:1}',
     // NAV
-    '.lmp-nav{display:flex;align-items:center;gap:2px;padding:8px 20px;position:sticky;top:0;z-index:50;background:rgba(10,10,20,.85);border-bottom:1px solid rgba(255,255,255,.05)}',
-    '.lmp-nav__btn{background:none;border:none;color:#bbb;font-family:inherit;font-size:22px;font-weight:700;padding:0 18px;height:100%;border-radius:6px;cursor:pointer;transition:color .2s,background .2s,transform .18s cubic-bezier(.34,1.56,.64,1);position:relative;white-space:nowrap;pointer-events:auto;letter-spacing:.01em}',
-    '.lmp-nav__btn:hover{color:#fff;background:rgba(255,255,255,.13);transform:scale(1.07)}',
+    '.lmp-nav{display:flex;align-items:center;gap:2px;padding:8px 20px;position:sticky;top:0;z-index:50;background:transparent;border-bottom:none}',
+    '.lmp-nav__btn{background:none;border:none;color:#888;font-family:inherit;font-size:22px;font-weight:700;padding:0 18px;height:100%;border-radius:6px;cursor:pointer;transition:color .25s ease-out;position:relative;white-space:nowrap;pointer-events:auto;letter-spacing:.01em}',
+    '.lmp-nav__btn:hover{color:#fff}',
     '.lmp-nav__btn.active{color:#fff}',
-    '.lmp-nav__btn.nav-focused{color:#fff;background:rgba(255,255,255,.18);transform:scale(1.07);outline:2px solid rgba(255,255,255,.5);outline-offset:2px}',
-    '#lmp-nav-pill{position:absolute;bottom:0;height:2px;background:linear-gradient(90deg,#e94560,#ff8a80);border-radius:2px;transition:left .3s cubic-bezier(.4,0,.2,1),width .3s;pointer-events:none}',
+    '.lmp-nav__btn.nav-focused{color:#fff}',
+    '#lmp-nav-pill{position:absolute;bottom:-2px;height:2px;background:linear-gradient(90deg,#e94560,#ff8a80);border-radius:2px;transition:left .35s ease-out,width .35s ease-out;pointer-events:none}',
     // HERO
     '.lmp-hero{position:relative;height:58vh;min-height:340px;overflow:hidden}',
-    '.lmp-hero__track{display:flex;height:100%;transition:transform .6s cubic-bezier(.4,0,.2,1)}',
+    '.lmp-hero__track{display:flex;height:100%;transition:transform .55s ease-out}',
     '.lmp-hcard{flex-shrink:0;width:46%;min-width:380px;height:100%;padding:16px 10px 16px 24px;cursor:pointer}',
-    '.lmp-hcard__inner{width:100%;height:100%;border-radius:14px;overflow:hidden;position:relative;transition:transform .35s,box-shadow .35s}',
-    '.lmp-hcard.focused .lmp-hcard__inner{transform:scale(1.03);box-shadow:0 12px 32px rgba(0,0,0,.7);outline:2px solid rgba(255,255,255,.35)}',
+    '.lmp-hcard__inner{width:100%;height:100%;border-radius:14px;overflow:hidden;position:relative;transition:transform .45s ease-out,box-shadow .45s ease-out}',
+    '.lmp-hcard.focused .lmp-hcard__inner{transform:scale(1.03);box-shadow:0 12px 32px rgba(0,0,0,.7)}',
     '.lmp-hcard__bg{width:100%;height:100%;object-fit:cover;display:block}',
     '.lmp-hcard__overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.9) 0%,rgba(0,0,0,.1) 55%,transparent 80%);display:flex;flex-direction:column;justify-content:flex-end;padding:22px 24px}',
     '.lmp-hcard__title{font-size:24px;font-weight:700;color:#fff;line-height:1.2;text-shadow:0 2px 10px rgba(0,0,0,.7)}',
@@ -48,11 +48,11 @@
     '.lmp-cards-wrap::-webkit-scrollbar{display:none}',
     '.lmp-cards{display:flex;gap:18px;padding:10px 24px 14px;width:max-content}',
     // CARD
-    '.lmp-card{flex-shrink:0;width:168px;cursor:pointer;position:relative;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}',
+    '.lmp-card{flex-shrink:0;width:168px;cursor:pointer;position:relative;transition:transform .35s ease-out}',
     '.lmp-card.focused{transform:scale(1.07) translateY(-4px)}',
-    '.lmp-card__poster{position:relative;width:168px;height:245px;border-radius:10px;overflow:hidden;background:#1e1e2e;transition:box-shadow .3s}',
+    '.lmp-card__poster{position:relative;width:168px;height:245px;border-radius:10px;overflow:hidden;background:#1e1e2e;transition:box-shadow .35s ease-out}',
     '.lmp-card.focused .lmp-card__poster{box-shadow:0 10px 28px rgba(0,0,0,.7),0 0 0 2px rgba(233,69,96,.6)}',
-    '.lmp-card__poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s;pointer-events:none}',
+    '.lmp-card__poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .45s ease-out;pointer-events:none}',
     '.lmp-card.focused .lmp-card__poster img{transform:scale(1.07)}',
     '.lmp-card__title{margin-top:8px;font-size:15px;font-weight:500;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;pointer-events:none;color:#bbb;transition:color .2s}',
     '.lmp-card.focused .lmp-card__title{color:#fff}',
@@ -212,7 +212,7 @@
       el.style.opacity = '0'; el.style.animation = 'none';
       setTimeout(function() {
         el.style.opacity = '';
-        el.style.animation = 'springUp .6s cubic-bezier(.4,0,.2,1) ' + (i*80) + 'ms both';
+        el.style.animation = 'fadeUp .5s ease-out ' + (i*60) + 'ms both';
       }, 30);
     });
 
@@ -760,7 +760,7 @@
           c.style.opacity='0'; c.style.animation='none';
           setTimeout(function(){
             c.style.opacity='';
-            c.style.animation='springUp .5s cubic-bezier(.4,0,.2,1) '+(j*28)+'ms both';
+            c.style.animation='fadeUp .4s ease-out '+(j*22)+'ms both';
           }, 50);
           // Mouse hover → .focused
           c.addEventListener('mouseenter', function() {
